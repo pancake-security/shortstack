@@ -16,8 +16,8 @@
 #include <iostream>
 
 #include "client.h"
-#include "thrift.h"
-#include "thrift_response_service.h"
+#include "pancake_thrift.h"
+#include "pancake_thrift_response.h"
 #include "queue.h"
 #include "command_response_reader.h"
 

@@ -28,6 +28,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${PROJECT_SOURCE_DIR}/cmake")
 # Dependencies
 include(Dependencies)
 
+if (GENERATE_THRIFT)
+  add_subdirectory(thrift)
+endif ()
+
 if (BUILD_STRESS_TESTS)
     add_definitions(-DSTRESS_TEST)
 endif()

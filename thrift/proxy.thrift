@@ -18,5 +18,14 @@ service pancake_thrift{
 }
 
 service pancake_thrift_response{
-  oneway void async_response(1:sequence_id seq_id, 2:i32 op_code, 3:list<string>result)
+  oneway void async_response(1:sequence_id seq_id, 2:i32 op_code, 3:list<string>result);
+}
+
+service l2proxy {
+  oneway void l2request(1:sequence_id seq_id, 2:string key, 3:i32 replica, 4:string value);
+}
+
+service l3proxy {
+  void register_client_id(1:i64 client_id);
+  oneway void l3request(1:sequence_id seq_id, 2:string label, 3:string value);
 }

@@ -22,7 +22,7 @@
 #include "queue.h"
 #include "storage_interface.h"
 #include "redis.h"
-#include "rocksdb.h"
+// #include "rocksdb.h"
 #include "thrift_response_client_map.h"
 //#include "memcached.h"
 

@@ -4,7 +4,7 @@
 
 #ifndef PANCAKE_THRIFT_HANDLER_H
 #define PANCAKE_THRIFT_HANDLER_H
-#include "thrift.h"
+#include "pancake_thrift.h"
 #include "proxy.h"
 #include "pancake_proxy.h"
 #include <thrift/protocol/TBinaryProtocol.h>

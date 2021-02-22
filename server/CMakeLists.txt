@@ -26,14 +26,19 @@ add_executable(proxy_server
         ../service/src/thrift_response_client_map.h
         ../service/src/thrift_response_client.cpp
         ../service/src/thrift_response_client.h
-        ../service/src/thrift_response_service.cpp
-        ../service/src/thrift_response_service.h
-        ../service/src/thrift.cpp
-        ../service/src/thrift.h
+        ../service/src/pancake_thrift_response.cpp
+        ../service/src/pancake_thrift_response.h
+        ../service/src/pancake_thrift.cpp
+        ../service/src/pancake_thrift.h
         ../service/src/proxy_types.cpp
         ../service/src/proxy_types.h
         ../service/src/proxy_constants.cpp
         ../service/src/proxy_constants.h
+
+        ../service/src/l2proxy.h
+        ../service/src/l2proxy.cpp
+        ../service/src/l3proxy.h
+        ../service/src/l3proxy.cpp
 
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
@@ -49,15 +54,39 @@ add_executable(proxy_server
         ../proxy/src/util.h
         ../proxy/src/util.cpp
 
+        ../proxy/src/consistent_hash.cpp
+        ../proxy/src/consistent_hash.h
+        ../proxy/src/dist_info_constants.cpp
+        ../proxy/src/dist_info_constants.h
+        ../proxy/src/dist_info_types.cpp
+        ../proxy/src/dist_info_types.h
+        ../proxy/src/distribution_info.cpp
+        ../proxy/src/distribution_info.h
+        ../proxy/src/host_info.cpp
+        ../proxy/src/host_info.h
+        ../proxy/src/l1_proxy.cpp
+        ../proxy/src/l1_proxy.h
+        ../proxy/src/l2_interface.cpp
+        ../proxy/src/l2_interface.h
+        ../proxy/src/l2_proxy.cpp
+        ../proxy/src/l2_proxy.h
+        ../proxy/src/l3_interface.cpp
+        ../proxy/src/l3_interface.h
+        ../proxy/src/l3_proxy.cpp
+        ../proxy/src/l3_proxy.h
+        ../proxy/src/MurmurHash2.cpp
+        ../proxy/src/MurmurHash2.h
+
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp
-        ../libstorage/src/rocksdb.cpp
-        ../libstorage/src/rocksdb.h
+        # ../libstorage/src/rocksdb.cpp
+        # ../libstorage/src/rocksdb.h
         #../libstorage/src/memcached.cpp
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
-add_dependencies(proxy_server cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+# add_dependencies(proxy_server cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+add_dependencies(proxy_server cpp_redis libcuckoo openssl_ep thrift_ep)
 target_link_libraries(proxy_server
         Threads::Threads
         ${THRIFTNB_LIBRARY}
@@ -65,8 +94,8 @@ target_link_libraries(proxy_server
         ${LIBEVENT_LIBRARY}
         ${CPP_REDIS_LIBRARIES}
         ${OPENSSL_LIBRARIES}
-        ${SSDB_CLIENT_LIBRARY}
-        ${LEVELDB_LIBRARY}
+        # ${SSDB_CLIENT_LIBRARY}
+        # ${LEVELDB_LIBRARY}
         ${SNAPPY_LIBRARY}
         ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}

@@ -333,17 +333,17 @@ set(JEMALLOC_LIBRARY "${JEMALLOC_PATH}/lib/libjemalloc.a")
 set(SSDB_CLIENT_INCLUDE_DIR "${SSDB_ROCKS_HOME}/api/cpp")
 set(SSDB_CLIENT_LIBRARY "${SSDB_ROCKS_HOME}/api/cpp/libssdb.a")
 
-ExternalProject_Add(ssdb_rocks
-        GIT_REPOSITORY "https://github.com/anuragkh/ssdb-rocks.git"
-        PREFIX ${SSDB_ROCKS_PREFIX}
-        BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND ./build.sh
-        BUILD_COMMAND "$(MAKE)"
-        INSTALL_COMMAND ""
-        LOG_DOWNLOAD ON
-        LOG_CONFIGURE ON
-        LOG_BUILD ON
-        LOG_INSTALL ON)
+# ExternalProject_Add(ssdb_rocks
+#         GIT_REPOSITORY "https://github.com/anuragkh/ssdb-rocks.git"
+#         PREFIX ${SSDB_ROCKS_PREFIX}
+#         BUILD_IN_SOURCE 1
+#         CONFIGURE_COMMAND ./build.sh
+#         BUILD_COMMAND "$(MAKE)"
+#         INSTALL_COMMAND ""
+#         LOG_DOWNLOAD ON
+#         LOG_CONFIGURE ON
+#         LOG_BUILD ON
+#         LOG_INSTALL ON)
 
 include_directories(SYSTEM ${LEVELDB_INCLUDE_DIR})
 include_directories(SYSTEM ${JEMALLOC_INCLUDE_DIR})

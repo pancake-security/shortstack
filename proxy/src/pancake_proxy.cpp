@@ -13,9 +13,9 @@ void pancake_proxy::init(const std::vector<std::string> &keys, const std::vector
         storage_interface_ = std::make_shared<redis>(server_host_name_, server_port_);
         cpp_redis::network::set_default_nb_workers(std::min(10, p_threads_));
     }
-    else if (server_type_ == "rocksdb") {
-        storage_interface_ = std::make_shared<rocksdb>(server_host_name_, server_port_);
-    }
+    // else if (server_type_ == "rocksdb") {
+    //     storage_interface_ = std::make_shared<rocksdb>(server_host_name_, server_port_);
+    // }
     //else if (server_type_ == "memcached")
     //    storage_interface_ new memcached(server_host_name_, server_port_+i);
     for (int i = 1; i < server_count_; i++) {
@@ -387,9 +387,9 @@ void pancake_proxy::consumer_thread(int id, encryption_engine *enc_engine){
     if (server_type_ == "redis") {
         storage_interface = std::make_shared<redis>(server_host_name_, server_port_);
     }
-    else if (server_type_ == "rocksdb") {
-        storage_interface = std::make_shared<rocksdb>(server_host_name_, server_port_);
-    }
+    // else if (server_type_ == "rocksdb") {
+    //     storage_interface = std::make_shared<rocksdb>(server_host_name_, server_port_);
+    // }
     //else if (server_type_ == "memcached")
     //    storage_interface_ new memcached(server_host_name_, server_port_+i);
     for (int i = 1; i < server_count_; i++) {

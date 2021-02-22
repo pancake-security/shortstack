@@ -16,7 +16,7 @@
 //#include <thrift/server/TServer.h>
 //#include <thrift/server/TNonblockingServer.h>
 //#include "../../proxy/src/proxy.h"
-#include "thrift.h"
+#include "pancake_thrift.h"
 
 class thrift_handler_factory : public pancake_thriftIfFactory {
 public:

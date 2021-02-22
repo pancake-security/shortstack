@@ -12,17 +12,18 @@ add_executable(storage_interface_test
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.cpp
         ../libstorage/src/redis.h
-        ../libstorage/src/rocksdb.cpp
-        ../libstorage/src/rocksdb.h
+        # ../libstorage/src/rocksdb.cpp
+        # ../libstorage/src/rocksdb.h
         #../libstorage/src/src/memcached.cpp
         #../libstorage/src/src/memcached.h
         )
-add_dependencies(storage_interface_test cpp_redis ssdb_rocks)
+# add_dependencies(storage_interface_test cpp_redis ssdb_rocks)
+add_dependencies(storage_interface_test cpp_redis)
 target_link_libraries(storage_interface_test
         Threads::Threads
         ${CPP_REDIS_LIBRARIES}
-        ${SSDB_CLIENT_LIBRARY}
-        ${LEVELDB_LIBRARY}
+        # ${SSDB_CLIENT_LIBRARY}
+        # ${LEVELDB_LIBRARY}
         ${SNAPPY_LIBRARY}
         ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}
@@ -77,8 +78,7 @@ add_executable(pancake_test
         ../libclient/src/proxy_client.cpp
         ../libclient/src/proxy_client.h
 
-        ../service/src/thrift_response_service.cpp
-        ../service/src/thrift_response_service.cpp
+        ../service/src/pancake_thrift_response.cpp
         ../service/src/thrift_response_client.cpp
         ../service/src/thrift_response_client.h
         ../service/src/thrift_response_client_map.cpp
@@ -89,8 +89,8 @@ add_executable(pancake_test
         ../service/src/thrift_handler_factory.h
         ../service/src/thrift_handler.cpp
         ../service/src/thrift_handler.h
-        ../service/src/thrift.cpp
-        ../service/src/thrift.h
+        ../service/src/pancake_thrift.cpp
+        ../service/src/pancake_thrift.h
         ../service/src/thrift_utils.h
         ../service/src/proxy_types.cpp
         ../service/src/proxy_types.h
@@ -114,12 +114,13 @@ add_executable(pancake_test
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp
-        ../libstorage/src/rocksdb.cpp
-        ../libstorage/src/rocksdb.h
+        # ../libstorage/src/rocksdb.cpp
+        # ../libstorage/src/rocksdb.h
         #../libstorage/src/memcached.cpp
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
-add_dependencies(pancake_test cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+# add_dependencies(pancake_test cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+add_dependencies(pancake_test cpp_redis libcuckoo openssl_ep thrift_ep)
 target_link_libraries(pancake_test
         Threads::Threads
         ${THRIFTNB_LIBRARY}
@@ -127,8 +128,8 @@ target_link_libraries(pancake_test
         ${LIBEVENT_LIBRARY}
         ${CPP_REDIS_LIBRARIES}
         ${OPENSSL_LIBRARIES}
-        ${SSDB_CLIENT_LIBRARY}
-        ${LEVELDB_LIBRARY}
+        # ${SSDB_CLIENT_LIBRARY}
+        # ${LEVELDB_LIBRARY}
         ${SNAPPY_LIBRARY}
         ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}

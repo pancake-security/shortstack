@@ -18,8 +18,7 @@ add_executable(proxy_benchmark
         ../libclient/src/command_response_reader.cpp
         ../libclient/src/command_response_reader.h
 
-        ../service/src/thrift_response_service.cpp
-        ../service/src/thrift_response_service.cpp
+        ../service/src/pancake_thrift_response.cpp
         ../service/src/thrift_response_client.cpp
         ../service/src/thrift_response_client.h
         ../service/src/thrift_response_client_map.cpp
@@ -30,8 +29,8 @@ add_executable(proxy_benchmark
         ../service/src/thrift_handler_factory.h
         ../service/src/thrift_handler.cpp
         ../service/src/thrift_handler.h
-        ../service/src/thrift.cpp
-        ../service/src/thrift.h
+        ../service/src/pancake_thrift.cpp
+        ../service/src/pancake_thrift.h
         ../service/src/proxy_types.cpp
         ../service/src/proxy_types.h
         ../service/src/proxy_constants.cpp
@@ -54,20 +53,21 @@ add_executable(proxy_benchmark
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp
-        ../libstorage/src/rocksdb.cpp
-        ../libstorage/src/rocksdb.h
+        # ../libstorage/src/rocksdb.cpp
+        # ../libstorage/src/rocksdb.h
         #../libstorage/src/memcached.cpp
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
-add_dependencies(proxy_benchmark cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+# add_dependencies(proxy_benchmark cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+add_dependencies(proxy_benchmark cpp_redis libcuckoo openssl_ep thrift_ep)
 target_link_libraries(proxy_benchmark
         ${THRIFTNB_LIBRARY}
         ${THRIFT_LIBRARY}
         ${LIBEVENT_LIBRARY}
         ${CPP_REDIS_LIBRARIES}
         ${OPENSSL_LIBRARIES}
-        ${SSDB_CLIENT_LIBRARY}
-        ${LEVELDB_LIBRARY}
+        # ${SSDB_CLIENT_LIBRARY}
+        # ${LEVELDB_LIBRARY}
         ${SNAPPY_LIBRARY}
         ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}

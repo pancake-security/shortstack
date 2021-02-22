@@ -85,3 +85,4 @@ test-driver
 .DS_Store
 /Debug/
 CMakeCache.txt
+.vscode

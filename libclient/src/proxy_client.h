@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "client.h"
-#include "thrift.h"
+#include "pancake_thrift.h"
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
