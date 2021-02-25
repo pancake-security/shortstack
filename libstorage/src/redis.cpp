@@ -79,6 +79,9 @@
                 if (nested_reply.is_error()){
                     throw std::runtime_error(nested_reply.error());
                 }
+                if(nested_reply.is_null()) {
+                    throw std::runtime_error("GET returned NULL value");
+                }
                 return_vector.push_back(nested_reply.as_string());
             }
         }

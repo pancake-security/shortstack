@@ -86,6 +86,7 @@ int64_t shortstack_client::get(const std::string &key) {
     seq.client_seq_no = sequence_num_;
     sequence_num_ += 1;
     l1_clients_[idx]->async_get(seq, key);
+    return seq.client_seq_no;
 }
 
 int64_t shortstack_client::put(const std::string &key, const std::string &value) {
@@ -96,6 +97,7 @@ int64_t shortstack_client::put(const std::string &key, const std::string &value)
     seq.client_seq_no = sequence_num_;
     sequence_num_ += 1;
     l1_clients_[idx]->async_put(seq, key, value);
+    return seq.client_seq_no;
 }
 
 int64_t shortstack_client::poll_responses(std::string &out) {

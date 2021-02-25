@@ -93,7 +93,15 @@ void l3_proxy::execute_batch(
   for (int i = 0; i < operations.size(); i++) {
     storage_keys.push_back(operations[i].label);
   }
-  auto responses = storage_interface->get_batch(storage_keys);
+  std::cout << "get_batch start\n";
+  std::vector<std::string> responses;
+  try{
+    responses = storage_interface->get_batch(storage_keys);
+  } catch(std::exception& ex) {
+    std::cout << ex.what();
+  }
+  
+  std::cout << "get_batch end\n";
   std::vector<std::string> storage_values;
   for (int i = 0; i < operations.size(); i++) {
     auto cipher = responses[i];
@@ -115,7 +123,9 @@ void l3_proxy::execute_batch(
 
     storage_values.push_back(enc_engine->encrypt(plaintext));
   }
+  std::cout << "put_batch start\n";
   storage_interface->put_batch(storage_keys, storage_values);
+  std::cout << "put_batch end\n";
 }
 
 void l3_proxy::responder_thread(){
