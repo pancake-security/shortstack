@@ -98,6 +98,11 @@ void l3_proxy::execute_batch(
   for (int i = 0; i < operations.size(); i++) {
     auto cipher = responses[i];
     auto plaintext = enc_engine->decrypt(cipher);
+
+    if (operations[i].value != "") {
+      plaintext = operations[i].value;
+    }
+    
     // Enqueue responses for real queries
     if (operations[i].seq_id.client_id != fake_client_id_) {
       client_response resp;
@@ -108,9 +113,6 @@ void l3_proxy::execute_batch(
       respond_queue_.push(resp);
     }
 
-    if (operations[i].value != "") {
-      plaintext = operations[i].value;
-    }
     storage_values.push_back(enc_engine->encrypt(plaintext));
   }
   storage_interface->put_batch(storage_keys, storage_values);

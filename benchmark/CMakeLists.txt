@@ -17,6 +17,8 @@ add_executable(proxy_benchmark
         ../libclient/src/async_proxy_client.h
         ../libclient/src/command_response_reader.cpp
         ../libclient/src/command_response_reader.h
+        ../libclient/src/shortstack_client.h
+        ../libclient/src/shortstack_client.cpp
 
         ../service/src/pancake_thrift_response.cpp
         ../service/src/thrift_response_client.cpp
@@ -36,6 +38,9 @@ add_executable(proxy_benchmark
         ../service/src/proxy_constants.cpp
         ../service/src/proxy_constants.h
 
+        ../service/src/l3proxy.h
+        ../service/src/l3proxy.cpp
+
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
         ../proxy/src/proxy.h
@@ -49,6 +54,9 @@ add_executable(proxy_benchmark
         ../proxy/src/encryption_engine.cpp
         ../proxy/src/util.h
         ../proxy/src/util.cpp
+
+        ../proxy/src/host_info.cpp
+        ../proxy/src/host_info.h
 
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
