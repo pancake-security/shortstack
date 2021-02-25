@@ -20,12 +20,12 @@ std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream& str)
     {
         result.push_back(cell);
     }
-    // This checks for a trailing comma with no data after it.
-    if (!lineStream && cell.empty())
-    {
-        // If there was a trailing comma then add an empty element.
-        result.push_back("");
-    }
+    // // This checks for a trailing comma with no data after it.
+    // if (!lineStream && cell.empty())
+    // {
+    //     // If there was a trailing comma then add an empty element.
+    //     result.push_back("");
+    // }
     return result;
 }
 
@@ -41,6 +41,7 @@ bool host_info::load(std::string filename) {
         if(row.size() == 0) {
             break;
         }
+        
         if(row.size() != 4) {
             std::cerr << "Invalid CSV row" << std::endl;
             return false;

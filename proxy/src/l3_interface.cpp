@@ -28,5 +28,5 @@ void l3proxy_interface::connect() {
 
 void l3proxy_interface::send_op(const l3_operation &op) {
   auto id = consistent_hash(op.label, clients_.size());
-  clients_[id]->l3request(op.seq_id, op.label, op.value);
+  clients_[id]->l3request(op.seq_id, op.label, op.value, op.is_read);
 }

@@ -37,8 +37,21 @@ add_executable(proxy_server
 
         ../service/src/l2proxy.h
         ../service/src/l2proxy.cpp
+        ../service/src/l2_handler_factory.h
+        ../service/src/l2_handler_factory.cpp
+        ../service/src/l2_handler.h
+        ../service/src/l2_handler.cpp
+        ../service/src/l2_server.h
+        ../service/src/l2_server.cpp
+
         ../service/src/l3proxy.h
         ../service/src/l3proxy.cpp
+        ../service/src/l3_handler_factory.h
+        ../service/src/l3_handler_factory.cpp
+        ../service/src/l3_handler.h
+        ../service/src/l3_handler.cpp
+        ../service/src/l3_server.h
+        ../service/src/l3_server.cpp
 
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
@@ -76,6 +89,8 @@ add_executable(proxy_server
         ../proxy/src/l3_proxy.h
         ../proxy/src/MurmurHash2.cpp
         ../proxy/src/MurmurHash2.h
+        ../proxy/src/initializer.h
+        ../proxy/src/initializer.cpp
 
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h

@@ -8,8 +8,16 @@
 
 #include "distribution.h"
 #include "pancake_proxy.h"
+#include "l1_proxy.h"
+#include "l2_proxy.h"
+#include "l3_proxy.h"
+#include "host_info.h"
+#include "distribution_info.h"
 //#include "thrift_response_client_map.h"
 #include "thrift_server.h"
+#include "l2_server.h"
+#include "l3_server.h"
+#include "initializer.h"
 #include "thrift_utils.h"
 
 #define HOST "127.0.0.1"
@@ -98,7 +106,7 @@ void flush_thread(std::shared_ptr<proxy> proxy){
     std::cout << "Quitting flush thread" << std::endl;
 }
 
-void usage() {
+void pancake_usage() {
     std::cout << "Pancake proxy: frequency flattening kvs\n";
     // Network Parameters
     std::cout << "\t -h: Storage server host name\n";
@@ -117,7 +125,8 @@ void usage() {
     std::cout << "\t -d: Core to run on\n";
 };
 
-int main(int argc, char *argv[]) {
+
+int pancake_main(int argc, char *argv[]) {
     int client_batch_size = 50;
     std::atomic<int> xput;
     std::atomic_init(&xput, 0);
@@ -168,7 +177,7 @@ int main(int argc, char *argv[]) {
                 dynamic_cast<pancake_proxy&>(*proxy_).trace_location_ = std::string(optarg);
                 break;
             default:
-                usage();
+                pancake_usage();
                 exit(-1);
         }
     }
@@ -198,4 +207,289 @@ int main(int argc, char *argv[]) {
     //flush_thread(proxy_);
     //proxy_->close();
     //proxy_server->stop();
+    return 0;
+}
+
+void l1_usage() {
+    std::cout << "Shortstack L1 proxy\n";
+    // Network Parameters
+    std::cout << "\t -h: Hosts file\n";
+    std::cout << "\t -d: Distribution info file\n";
+    std::cout << "\t -i: Instance name\n";
+}
+
+int l1_main(int argc, char *argv[]) {
+    int o;
+    std::string hosts_file;
+    std::string dist_file;
+    std::string instance_name;
+    while ((o = getopt(argc, argv, "h:d:i:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'd':
+                dist_file = std::string(optarg);
+                break;
+            case 'i':
+                instance_name = std::string(optarg);
+                break;
+            default:
+                l1_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
+
+    std::string proxy_host;
+    int proxy_port;
+    if(!hinfo->get_hostname(instance_name, proxy_host)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+    if(!hinfo->get_port(instance_name, proxy_port)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+
+
+    auto dinfo = std::make_shared<distribution_info>();
+    // TODO: exception handling
+    dinfo->load(dist_file);
+
+    std::shared_ptr<l1_proxy> proxy = std::make_shared<l1_proxy>();
+    proxy->init_proxy(hinfo, instance_name, dinfo);
+
+    auto id_to_client = std::make_shared<thrift_response_client_map>();
+    auto proxy_server = thrift_server::create(proxy, "l1", id_to_client, proxy_port, 1);
+    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
+    wait_for_server_start(proxy_host, proxy_port);
+    std::cout << "Proxy server is reachable" << std::endl;
+    sleep(10000);
+
+    return 0;
+
+}
+
+void l2_usage() {
+    std::cout << "Shortstack L2 proxy\n";
+    // Network Parameters
+    std::cout << "\t -h: Hosts file\n";
+    std::cout << "\t -d: Distribution info file\n";
+    std::cout << "\t -i: Instance name\n";
+}
+
+int l2_main(int argc, char *argv[]) {
+    int o;
+    std::string hosts_file;
+    std::string dist_file;
+    std::string instance_name;
+    while ((o = getopt(argc, argv, "h:d:i:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'd':
+                dist_file = std::string(optarg);
+                break;
+            case 'i':
+                instance_name = std::string(optarg);
+                break;
+            default:
+                l2_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
+
+    std::string proxy_host;
+    int proxy_port;
+    if(!hinfo->get_hostname(instance_name, proxy_host)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+    if(!hinfo->get_port(instance_name, proxy_port)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+
+
+    auto dinfo = std::make_shared<distribution_info>();
+    // TODO: exception handling
+    dinfo->load(dist_file);
+
+    std::shared_ptr<l2_proxy> proxy = std::make_shared<l2_proxy>();
+    proxy->init_proxy(hinfo, instance_name, dinfo);
+
+    auto proxy_server = l2_server::create(proxy, proxy_port, 15, 1);
+    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
+    wait_for_server_start(proxy_host, proxy_port);
+    std::cout << "Proxy server is reachable" << std::endl;
+    sleep(10000);
+
+    return 0;
+
+}
+
+void l3_usage() {
+    std::cout << "Shortstack L3 proxy\n";
+    // Network Parameters
+    std::cout << "\t -h: Hosts file\n";
+    std::cout << "\t -d: Distribution info file\n";
+    std::cout << "\t -i: Instance name\n";
+}
+
+int l3_main(int argc, char *argv[]) {
+    int o;
+    std::string hosts_file;
+    std::string dist_file;
+    std::string instance_name;
+    int storage_batch_size;
+    while ((o = getopt(argc, argv, "h:i:s:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'i':
+                instance_name = std::string(optarg);
+                break;
+            case 's':
+                storage_batch_size = std::atoi(optarg);
+                break;
+            default:
+                l3_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
+
+    std::string proxy_host;
+    int proxy_port;
+    if(!hinfo->get_hostname(instance_name, proxy_host)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+    if(!hinfo->get_port(instance_name, proxy_port)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+
+
+    // auto dinfo = std::make_shared<distribution_info>();
+    // // TODO: exception handling
+    // dinfo->load(dist_file);
+
+    auto id_to_client = std::make_shared<thrift_response_client_map>();
+
+    std::shared_ptr<l3_proxy> proxy = std::make_shared<l3_proxy>();
+    proxy->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_client);
+    
+    auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, 15, 1);
+    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
+    wait_for_server_start(proxy_host, proxy_port);
+    std::cout << "Proxy server is reachable" << std::endl;
+    sleep(10000);
+
+    return 0;
+
+}
+
+void init_usage() {
+    std::cout << "Shortstack init\n";
+
+    std::cout << "\t -h: Hosts file\n";
+    std::cout << "\t -o: Object size\n";
+    std::cout << "\t -t: Trace file\n";
+    std::cout << "\t -d: Distinfo file target path\n";
+}
+
+int init_main(int argc, char *argv[]) {
+    int client_batch_size = 50;
+    int object_size = 1000;
+    std::string hosts_file;
+    std::string trace_file;
+    std::string dinfo_file;
+    int o;
+    while ((o = getopt(argc, argv, "h:o:t:d:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'o':
+                object_size = std::atoi(optarg);
+                break;
+            case 't':
+                trace_file = std::string(optarg);
+                break;
+            case 'd':   
+                dinfo_file = std::string(optarg);
+                break;
+            default:
+                init_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
+
+    std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_;
+    auto dist = load_frequencies_from_trace(trace_file, trace_, client_batch_size);
+
+    initializer initer;
+
+    initer.init(dist, object_size, hinfo);
+    std::cout << "Initialized KV store\n";
+
+    auto dinfo = initer.get_distinfo();
+    dinfo->dump(dinfo_file);
+    std::cout << "Dumped distribution info file\n";
+    
+    return 0;
+}
+
+void usage() {
+    std::cout << "Usage: ./proxy_server <type> .....\n";
+}
+
+int main(int argc, char *argv[]) {
+
+    if(argc < 2) {
+        usage();
+        exit(-1);
+    }
+
+    if(strcmp(argv[1], "pancake") == 0) {
+        return pancake_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "l1") == 0) {
+        return l1_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "l2") == 0) {
+        return l2_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "l3") == 0) {
+        return l3_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "init") == 0) {
+        return init_main(argc - 1, argv + 1);
+    } else {    
+        std::cerr << "Unkown proxy type" << std::endl;
+        exit(-1);
+    }
+
 }

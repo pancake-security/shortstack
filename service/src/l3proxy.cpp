@@ -214,6 +214,14 @@ uint32_t l3proxy_l3request_args::read(::apache::thrift::protocol::TProtocol* ipr
           xfer += iprot->skip(ftype);
         }
         break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->is_read);
+          this->__isset.is_read = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -243,6 +251,10 @@ uint32_t l3proxy_l3request_args::write(::apache::thrift::protocol::TProtocol* op
   xfer += oprot->writeString(this->value);
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("is_read", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool(this->is_read);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -268,6 +280,10 @@ uint32_t l3proxy_l3request_pargs::write(::apache::thrift::protocol::TProtocol* o
 
   xfer += oprot->writeFieldBegin("value", ::apache::thrift::protocol::T_STRING, 3);
   xfer += oprot->writeString((*(this->value)));
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("is_read", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool((*(this->is_read)));
   xfer += oprot->writeFieldEnd();
 
   xfer += oprot->writeFieldStop();
@@ -328,12 +344,12 @@ void l3proxyClient::recv_register_client_id()
   return;
 }
 
-void l3proxyClient::l3request(const sequence_id& seq_id, const std::string& label, const std::string& value)
+void l3proxyClient::l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read)
 {
-  send_l3request(seq_id, label, value);
+  send_l3request(seq_id, label, value, is_read);
 }
 
-void l3proxyClient::send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value)
+void l3proxyClient::send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("l3request", ::apache::thrift::protocol::T_ONEWAY, cseqid);
@@ -342,6 +358,7 @@ void l3proxyClient::send_l3request(const sequence_id& seq_id, const std::string&
   args.seq_id = &seq_id;
   args.label = &label;
   args.value = &value;
+  args.is_read = &is_read;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();
@@ -443,7 +460,7 @@ void l3proxyProcessor::process_l3request(int32_t, ::apache::thrift::protocol::TP
   }
 
   try {
-    iface_->l3request(args.seq_id, args.label, args.value);
+    iface_->l3request(args.seq_id, args.label, args.value, args.is_read);
   } catch (const std::exception&) {
     if (this->eventHandler_.get() != NULL) {
       this->eventHandler_->handlerError(ctx, "l3proxy.l3request");
@@ -543,12 +560,12 @@ void l3proxyConcurrentClient::recv_register_client_id(const int32_t seqid)
   } // end while(true)
 }
 
-void l3proxyConcurrentClient::l3request(const sequence_id& seq_id, const std::string& label, const std::string& value)
+void l3proxyConcurrentClient::l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read)
 {
-  send_l3request(seq_id, label, value);
+  send_l3request(seq_id, label, value, is_read);
 }
 
-void l3proxyConcurrentClient::send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value)
+void l3proxyConcurrentClient::send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read)
 {
   int32_t cseqid = 0;
   ::apache::thrift::async::TConcurrentSendSentry sentry(&this->sync_);
@@ -558,6 +575,7 @@ void l3proxyConcurrentClient::send_l3request(const sequence_id& seq_id, const st
   args.seq_id = &seq_id;
   args.label = &label;
   args.value = &value;
+  args.is_read = &is_read;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();

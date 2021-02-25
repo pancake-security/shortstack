@@ -1,3 +1,5 @@
+#ifndef THRIFT_RESPONSE_CLIENT_H
+#define THRIFT_RESPONSE_CLIENT_H
 #include <thrift/transport/TSocket.h>
 #include "pancake_thrift_response.h"
 
@@ -25,3 +27,5 @@ class thrift_response_client {
   /* thrift response service client */
   std::shared_ptr<thrift_client> client_{};
 };
+
+#endif // THRIFT_RESPONSE_CLIENT_H

@@ -27,5 +27,5 @@ service l2proxy {
 
 service l3proxy {
   void register_client_id(1:i64 client_id);
-  oneway void l3request(1:sequence_id seq_id, 2:string label, 3:string value);
+  oneway void l3request(1:sequence_id seq_id, 2:string label, 3:string value, 4:bool is_read);
 }

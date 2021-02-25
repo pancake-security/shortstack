@@ -40,7 +40,7 @@ public:
                   std::shared_ptr<thrift_response_client_map> client_map);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
-                       const std::string &value, bool is_real_read);
+                       const std::string &value, bool is_read);
 
   void close();
 

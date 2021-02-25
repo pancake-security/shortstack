@@ -86,3 +86,6 @@ test-driver
 /Debug/
 CMakeCache.txt
 .vscode
+
+*.bin
+traces/large/*

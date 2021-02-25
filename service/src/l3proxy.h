@@ -22,7 +22,7 @@ class l3proxyIf {
  public:
   virtual ~l3proxyIf() {}
   virtual void register_client_id(const int64_t client_id) = 0;
-  virtual void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value) = 0;
+  virtual void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read) = 0;
 };
 
 class l3proxyIfFactory {
@@ -55,7 +55,7 @@ class l3proxyNull : virtual public l3proxyIf {
   void register_client_id(const int64_t /* client_id */) {
     return;
   }
-  void l3request(const sequence_id& /* seq_id */, const std::string& /* label */, const std::string& /* value */) {
+  void l3request(const sequence_id& /* seq_id */, const std::string& /* label */, const std::string& /* value */, const bool /* is_read */) {
     return;
   }
 };
@@ -147,10 +147,11 @@ class l3proxy_register_client_id_presult {
 };
 
 typedef struct _l3proxy_l3request_args__isset {
-  _l3proxy_l3request_args__isset() : seq_id(false), label(false), value(false) {}
+  _l3proxy_l3request_args__isset() : seq_id(false), label(false), value(false), is_read(false) {}
   bool seq_id :1;
   bool label :1;
   bool value :1;
+  bool is_read :1;
 } _l3proxy_l3request_args__isset;
 
 class l3proxy_l3request_args {
@@ -158,13 +159,14 @@ class l3proxy_l3request_args {
 
   l3proxy_l3request_args(const l3proxy_l3request_args&);
   l3proxy_l3request_args& operator=(const l3proxy_l3request_args&);
-  l3proxy_l3request_args() : label(), value() {
+  l3proxy_l3request_args() : label(), value(), is_read(0) {
   }
 
   virtual ~l3proxy_l3request_args() throw();
   sequence_id seq_id;
   std::string label;
   std::string value;
+  bool is_read;
 
   _l3proxy_l3request_args__isset __isset;
 
@@ -174,6 +176,8 @@ class l3proxy_l3request_args {
 
   void __set_value(const std::string& val);
 
+  void __set_is_read(const bool val);
+
   bool operator == (const l3proxy_l3request_args & rhs) const
   {
     if (!(seq_id == rhs.seq_id))
@@ -181,6 +185,8 @@ class l3proxy_l3request_args {
     if (!(label == rhs.label))
       return false;
     if (!(value == rhs.value))
+      return false;
+    if (!(is_read == rhs.is_read))
       return false;
     return true;
   }
@@ -204,6 +210,7 @@ class l3proxy_l3request_pargs {
   const sequence_id* seq_id;
   const std::string* label;
   const std::string* value;
+  const bool* is_read;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -237,8 +244,8 @@ class l3proxyClient : virtual public l3proxyIf {
   void register_client_id(const int64_t client_id);
   void send_register_client_id(const int64_t client_id);
   void recv_register_client_id();
-  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value);
-  void send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value);
+  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read);
+  void send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -298,13 +305,13 @@ class l3proxyMultiface : virtual public l3proxyIf {
     ifaces_[i]->register_client_id(client_id);
   }
 
-  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value) {
+  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->l3request(seq_id, label, value);
+      ifaces_[i]->l3request(seq_id, label, value, is_read);
     }
-    ifaces_[i]->l3request(seq_id, label, value);
+    ifaces_[i]->l3request(seq_id, label, value, is_read);
   }
 
 };
@@ -340,8 +347,8 @@ class l3proxyConcurrentClient : virtual public l3proxyIf {
   void register_client_id(const int64_t client_id);
   int32_t send_register_client_id(const int64_t client_id);
   void recv_register_client_id(const int32_t seqid);
-  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value);
-  void send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value);
+  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read);
+  void send_l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;

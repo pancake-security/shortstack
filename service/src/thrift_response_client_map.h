@@ -1,3 +1,5 @@
+#ifndef THRIFT_RESPONSE_CLIENT_MAP_H
+#define THRIFT_RESPONSE_CLIENT_MAP_H
 #include <cstdint>
 #include <libcuckoo/cuckoohash_map.hh>
 #include "thrift_response_client.h"
@@ -56,3 +58,5 @@ class thrift_response_client_map {
   /* Response client map */
   libcuckoo::cuckoohash_map<int64_t, std::shared_ptr<thrift_response_client>> clients_;
 };
+
+#endif //THRIFT_RESPONSE_CLIENT_MAP_H
