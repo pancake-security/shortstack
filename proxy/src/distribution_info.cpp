@@ -4,6 +4,7 @@
 #include <thrift/protocol/TBinaryProtocol.h>
 
 #include "distribution_info.h"
+#include <cstdio>
 
 using namespace apache::thrift::transport;
 using namespace apache::thrift::protocol;
@@ -20,6 +21,7 @@ void distribution_info::load(std::string filename) {
     dummy_key_ = dinfo.dummy_key;
     
     for(auto &it : dinfo.key_to_number_of_replicas) {
+        // std::cout << "ktnr" <<std::endl;
         key_to_number_of_replicas_[it.first] = it.second;
     }
     for(auto &it : dinfo.replica_to_label) {
@@ -50,6 +52,7 @@ void distribution_info::load(std::string filename) {
 }
 
 void distribution_info::dump(std::string filename) {
+    remove(filename.c_str());
     auto trans = std::make_shared<TSimpleFileTransport>(filename, false, true);
     auto proto = std::make_shared<TBinaryProtocol>(trans);
     trans->open();
@@ -58,6 +61,7 @@ void distribution_info::dump(std::string filename) {
     dinfo.num_keys = num_keys_;
     dinfo.dummy_key = dummy_key_;
     for(auto &it : key_to_number_of_replicas_) {
+        // std::cout << "ktnr" <<std::endl;
         dinfo.key_to_number_of_replicas[it.first] = it.second;
     }
     for(auto &it : replica_to_label_) {

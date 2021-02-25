@@ -1,5 +1,7 @@
 #include "initializer.h"
 
+#include <iostream>
+
 void initializer::init(const distribution &real_dist, int object_size, std::shared_ptr<host_info> hosts) {
     object_size_ = object_size;
     label_count_ = 0;
@@ -17,7 +19,9 @@ void initializer::init(const distribution &real_dist, int object_size, std::shar
         std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
     for (int j = 1; j < kv_hosts.size(); j++) {
         storage_interface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-    }    
+    }
+
+    create_replicas();    
 }
 
 std::shared_ptr<distribution_info> initializer::get_distinfo() {
@@ -30,8 +34,8 @@ void initializer::create_replicas() {
     auto keys = dist_info_->real_distribution_.get_items();
     auto probabilities = dist_info_->real_distribution_.get_probabilities();
 
-    double alpha = 1.0 / keys.size();
-    double delta = 0.5;
+    alpha_ = 1.0 / keys.size();
+    delta_ = 0.5;
 
     std::vector<double> fake_probabilities;
     int index = 0;
@@ -41,6 +45,7 @@ void initializer::create_replicas() {
         double pi_f = r_i * (alpha_-pi/r_i)/(1/delta_ - 1);
         fake_probabilities.push_back(pi_f);
         dist_info_->key_to_number_of_replicas_[key] = r_i;
+        // std::cout << "wrote to ktnr" << " " << r_i << std::endl;
         insert_replicas(key, r_i);
         keys_created += r_i;
         index++;

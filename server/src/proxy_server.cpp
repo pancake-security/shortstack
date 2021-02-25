@@ -447,12 +447,14 @@ int init_main(int argc, char *argv[]) {
 
     auto hinfo = std::make_shared<host_info>();
     if(!hinfo->load(hosts_file)) {
-        std::cerr << "Unable to load hosst file" << std::endl;
+        std::cerr << "Unable to load hosts file" << std::endl;
         exit(-1);
     }
 
     std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_;
     auto dist = load_frequencies_from_trace(trace_file, trace_, client_batch_size);
+
+    std::cout << "Real distribution support size: " << dist.get_items().size() << "\n";
 
     initializer initer;
 
@@ -463,6 +465,60 @@ int init_main(int argc, char *argv[]) {
     dinfo->dump(dinfo_file);
     std::cout << "Dumped distribution info file\n";
     
+    return 0;
+}
+
+void dump_usage() {
+    std::cout << "Dump distribution info file\n";
+
+    std::cout << "\t -d: Distinfo file target path\n";
+}
+
+
+int dump_main(int argc, char *argv[]) {
+    std::string dinfo_file;
+    int o;
+    while ((o = getopt(argc, argv, "d:")) != -1) {
+        switch (o) {
+            case 'd':   
+                dinfo_file = std::string(optarg);
+                break;
+            default:
+                dump_usage();
+                exit(-1);
+        }
+    }
+
+    auto dinfo = std::make_shared<distribution_info>();
+    dinfo->load(dinfo_file);
+
+    std::cout << "dummy_key: " << dinfo->dummy_key_ << std::endl;
+    std::cout << "num_keys: " << dinfo->num_keys_ << std::endl;
+
+    std::cout << "real_distribution:" << std::endl;
+    auto keys = dinfo->real_distribution_.get_items();
+    auto probs = dinfo->real_distribution_.get_probabilities();
+    for(int i = 0; i < keys.size(); i++) {
+        std::cout << keys[i] << " " << probs[i] << std::endl;
+    }
+
+    std::cout << "fake_distribution:" << std::endl;
+    keys = dinfo->fake_distribution_.get_items();
+    probs = dinfo->fake_distribution_.get_probabilities();
+    for(int i = 0; i < keys.size(); i++) {
+        std::cout << keys[i] << " " << probs[i] << std::endl;
+    }
+
+    std::cout << "key_to_number_of_replicas:" << std::endl;
+    for(auto &it : dinfo->key_to_number_of_replicas_) {
+        std::cout << it.first << " " << it.second << std::endl;
+    }
+
+    std::cout << "replica_to_label:" << std::endl;
+    for(auto &it : dinfo->replica_to_label_) {
+        std::cout << it.first << " " << it.second << std::endl;
+    }
+
     return 0;
 }
 
@@ -487,6 +543,8 @@ int main(int argc, char *argv[]) {
         return l3_main(argc - 1, argv + 1);
     } else if(strcmp(argv[1], "init") == 0) {
         return init_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "dump") == 0) {
+        return dump_main(argc - 1, argv + 1);
     } else {    
         std::cerr << "Unkown proxy type" << std::endl;
         exit(-1);
