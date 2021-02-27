@@ -1,6 +1,6 @@
 // Shortstack L1 proxy implementation
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include "l1_proxy.h"
 
@@ -46,6 +46,8 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   for (int i = 0; i < num_cores; i++) {
     threads_.push_back(std::thread(&l1_proxy::consumer_thread, this, i));
   }
+
+  spdlog::info("Initialized L1 proxy");
 }
 
 void l1_proxy::init(const std::vector<std::string> &keys,
@@ -63,7 +65,7 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
   for (int i = 0; i < security_batch_size_; i++) {
     l2_operation operat;
     if (is_true_distribution()) {
-      std::cerr << "True toss" << std::endl;
+      // std::cerr << "True toss" << std::endl;
       atleast_one_true = true;
       if (q.empty()) {
         operat.seq_id.client_id = fake_client_id_;
@@ -79,7 +81,7 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
         q.pop();
       }
     } else {
-      std::cerr << "False toss" << std::endl;
+      // std::cerr << "False toss" << std::endl;
       operat.seq_id.client_id = fake_client_id_;
       operat.key = fake_distribution_.sample();
       operat.value = "";
@@ -97,7 +99,7 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
   }
 
   if(!atleast_one_true) {
-    std::cerr << "Batch with all false requests" << std::endl;
+    spdlog::debug("Batch with all false requests");
   }
 }
 
@@ -198,13 +200,12 @@ void l1_proxy::consumer_thread(int id) {
   // Connect to L2 servers
   l2_interface->connect();
 
-  std::cerr << "Consumer " << id << ": "
-            << "L2 interface connected" << std::endl;
+  spdlog::info("Consumer {}: L2 interface connected", id);
 
   std::queue<l1_operation> internal_queue;
   while (true) {
     auto op = operation_queues_[id]->pop(); // Blocking call
-    std::cerr << "recvd op " << op.seq_id.client_id << " " << op.seq_id.client_seq_no << std::endl;
+    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
     if (finished_.load()) {
       break;
     }

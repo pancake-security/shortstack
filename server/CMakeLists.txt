@@ -101,7 +101,7 @@ add_executable(proxy_server
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
 # add_dependencies(proxy_server cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
-add_dependencies(proxy_server cpp_redis libcuckoo openssl_ep thrift_ep)
+add_dependencies(proxy_server cpp_redis libcuckoo openssl_ep thrift_ep spdlog)
 target_link_libraries(proxy_server
         Threads::Threads
         ${THRIFTNB_LIBRARY}
@@ -117,6 +117,7 @@ target_link_libraries(proxy_server
         ${ZLIB_LIBRARIES}
         ${BZIP2_LIBRARIES}
         #${LIBMEMCACHED_LIBRARIES}
+        ${SPDLOG_LIBRARIES}
         ${PROXY_INCLUDE_LIBRARIES}
         ${STORAGE_INCLUDE_LIBRARIES}
         ${BENCHMARK_INCLUDE_LIBRARIES}

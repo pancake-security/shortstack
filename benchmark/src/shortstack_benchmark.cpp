@@ -9,6 +9,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
+#include <spdlog/spdlog.h>
 #include "timer.h"
 #include "shortstack_client.h"
 #include "thrift_utils.h"
@@ -80,7 +81,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         } else {
             seq = client.put(key, val);
         }
-        std::cout << "sent request" << std::endl;
+        spdlog::debug("sent request");
 
         if (stats) {
             start_ts[seq] = start;
@@ -97,7 +98,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         }
         ops += 1;
 
-        std::cout << "recvd response" << std::endl;
+        spdlog::debug("recvd response");
 
         // Send new request
         auto kv_pair = trace[idx];
@@ -114,6 +115,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         } else {
             seq = client.put(key, val);
         }
+        spdlog::debug("sent request");
 
         if (stats) {
             start_ts[seq] = start;

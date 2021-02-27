@@ -1,5 +1,6 @@
 // Shortstack L2 proxy implementation
 
+#include <spdlog/spdlog.h>
 #include "l2_proxy.h"
 
 void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
@@ -74,7 +75,7 @@ void l2_proxy::consumer_thread(int id) {
 
   while (true) {
     auto op = operation_queues_[id]->pop(); // Blocking call
-    std::cerr << "recvd op " << op.seq_id.client_id << " " << op.seq_id.client_seq_no << std::endl;
+    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
     if (finished_.load()) {
       break;
     }

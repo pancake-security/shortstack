@@ -151,7 +151,7 @@ add_executable(shortstack_benchmark
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
 # add_dependencies(proxy_benchmark cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
-add_dependencies(shortstack_benchmark cpp_redis libcuckoo openssl_ep thrift_ep)
+add_dependencies(shortstack_benchmark cpp_redis libcuckoo openssl_ep thrift_ep spdlog)
 target_link_libraries(shortstack_benchmark
         ${THRIFTNB_LIBRARY}
         ${THRIFT_LIBRARY}
@@ -172,4 +172,5 @@ target_link_libraries(shortstack_benchmark
         ${BENCHMARK_INCLUDE_LIBRARIES}
         ${SERVICE_INCLUDE_LIBRARIES}
         ${CLIENT_INCLUDE_LIBRARIES}
+        ${SPDLOG_LIBRARIES}
         Threads::Threads)
