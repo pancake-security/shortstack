@@ -56,6 +56,32 @@ int main(int argc, char *argv[]) {
     std::cout << "get 1 response recvd\n";
     assert(res == "hello");
 
+    
+    for(int i = 1; i <= 5; i++) {
+        client->put(std::to_string(i), std::to_string(i));
+    }
+
+    // Wait for put responses
+    for(int i = 1; i <= 5; i++) 
+    {
+        std::string out;
+        client->poll_responses(out);
+        assert(out == "");
+    }
+
+    std::unordered_map<int64_t, std::string> seq_to_key;
+
+    for(int i = 1; i <= 5; i++) {
+        auto seq = client->get(std::to_string(i));
+        seq_to_key[seq] = std::to_string(i);
+    }
+
+    for(int i = 1; i <= 5; i++) 
+    {
+        std::string out;
+        auto seq = client->poll_responses(out);
+        assert(seq_to_key[seq] == out);
+    }
 
     client->finish();
 
