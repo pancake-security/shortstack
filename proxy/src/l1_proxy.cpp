@@ -58,9 +58,13 @@ bool l1_proxy::is_true_distribution() { return prob(delta_); };
 void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
                                      std::vector<l2_operation> &batch,
                                      std::vector<bool> &is_trues) {
+
+  bool atleast_one_true = false;
   for (int i = 0; i < security_batch_size_; i++) {
     l2_operation operat;
     if (is_true_distribution()) {
+      std::cerr << "True toss" << std::endl;
+      atleast_one_true = true;
       if (q.empty()) {
         operat.seq_id.client_id = fake_client_id_;
         operat.key = real_distribution_.sample();
@@ -75,6 +79,7 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
         q.pop();
       }
     } else {
+      std::cerr << "False toss" << std::endl;
       operat.seq_id.client_id = fake_client_id_;
       operat.key = fake_distribution_.sample();
       operat.value = "";
@@ -89,6 +94,10 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
     operat.replica = rand_uint32(0, it->second - 1);
 
     batch.push_back(operat);
+  }
+
+  if(!atleast_one_true) {
+    std::cerr << "Batch with all false requests" << std::endl;
   }
 }
 
@@ -195,6 +204,7 @@ void l1_proxy::consumer_thread(int id) {
   std::queue<l1_operation> internal_queue;
   while (true) {
     auto op = operation_queues_[id]->pop(); // Blocking call
+    std::cerr << "recvd op " << op.seq_id.client_id << " " << op.seq_id.client_seq_no << std::endl;
     if (finished_.load()) {
       break;
     }

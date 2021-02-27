@@ -122,7 +122,8 @@ void shortstack_client::response_thread(int idx) {
         try {
             resp.sequence_num = readers_[idx].recv_response(_return);
         } catch(apache::thrift::transport::TTransportException e){
-            (void)0;
+            std::cerr << e.what() << std::endl;
+            continue;
         }
 
         resp.value = _return[0]; 

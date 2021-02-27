@@ -5,7 +5,7 @@
 #include "util.h"
 
 uint32_t rand_uint32(const uint32_t &min, const uint32_t &max) {
-    static thread_local std::mt19937 generator;
+    static thread_local std::mt19937 generator(std::random_device{}());
     std::uniform_int_distribution<uint32_t> distribution(min, max);
     return distribution(generator);
 };
@@ -21,5 +21,7 @@ std::string rand_str(const int len) {
 };
 
 bool prob(double p){
-    return rand_uint32(0,RAND_MAX)/(RAND_MAX+1.0) < p;
+    static thread_local std::mt19937 generator(std::random_device{}());
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    return distribution(generator) < p;
 };

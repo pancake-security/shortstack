@@ -89,3 +89,4 @@ CMakeCache.txt
 
 *.bin
 traces/large/*
+data/

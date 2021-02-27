@@ -73,6 +73,7 @@ void l3_proxy::consumer_thread(int id, encryption_engine *enc_engine) {
     std::vector<l3_operation> storage_batch;
     while (storage_batch.size() < storage_batch_size_ && !finished_.load()) {
       auto op = operation_queues_[id]->pop(); // Blocking call
+      std::cerr << "recvd op " << op.seq_id.client_id << " " << op.seq_id.client_seq_no << std::endl;
       storage_batch.push_back(op);
     }
 

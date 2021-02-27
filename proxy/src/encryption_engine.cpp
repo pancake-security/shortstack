@@ -7,8 +7,8 @@
 
     encryption_engine::encryption_engine() {
         OpenSSL_add_all_algorithms();
-        encryption_string_ = rand_str(32);
-	    iv_string_= rand_str(16);
+        encryption_string_ = "95778965627559212005501173333841";
+	    iv_string_= "5063160917463462";
         encryption_key_ = (unsigned char *)encryption_string_.c_str();
         iv_ = (unsigned char *)iv_string_.c_str();
 

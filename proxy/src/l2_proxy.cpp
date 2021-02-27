@@ -74,6 +74,7 @@ void l2_proxy::consumer_thread(int id) {
 
   while (true) {
     auto op = operation_queues_[id]->pop(); // Blocking call
+    std::cerr << "recvd op " << op.seq_id.client_id << " " << op.seq_id.client_seq_no << std::endl;
     if (finished_.load()) {
       break;
     }
