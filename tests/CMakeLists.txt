@@ -24,8 +24,8 @@ target_link_libraries(storage_interface_test
         ${CPP_REDIS_LIBRARIES}
         # ${SSDB_CLIENT_LIBRARY}
         # ${LEVELDB_LIBRARY}
-        ${SNAPPY_LIBRARY}
-        ${JEMALLOC_LIBRARY}
+        # ${SNAPPY_LIBRARY}
+        # ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}
         ${ZLIB_LIBRARIES}
         ${BZIP2_LIBRARIES}
@@ -130,8 +130,8 @@ target_link_libraries(pancake_test
         ${OPENSSL_LIBRARIES}
         # ${SSDB_CLIENT_LIBRARY}
         # ${LEVELDB_LIBRARY}
-        ${SNAPPY_LIBRARY}
-        ${JEMALLOC_LIBRARY}
+        # ${SNAPPY_LIBRARY}
+        # ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}
         ${ZLIB_LIBRARIES}
         ${BZIP2_LIBRARIES}
@@ -214,8 +214,8 @@ target_link_libraries(shortstack_test
         ${OPENSSL_LIBRARIES}
         # ${SSDB_CLIENT_LIBRARY}
         # ${LEVELDB_LIBRARY}
-        ${SNAPPY_LIBRARY}
-        ${JEMALLOC_LIBRARY}
+        # ${SNAPPY_LIBRARY}
+        # ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}
         ${ZLIB_LIBRARIES}
         ${BZIP2_LIBRARIES}

@@ -111,8 +111,8 @@ target_link_libraries(proxy_server
         ${OPENSSL_LIBRARIES}
         # ${SSDB_CLIENT_LIBRARY}
         # ${LEVELDB_LIBRARY}
-        ${SNAPPY_LIBRARY}
-        ${JEMALLOC_LIBRARY}
+        # ${SNAPPY_LIBRARY}
+        # ${JEMALLOC_LIBRARY}
         ${CMAKE_DL_LIBS}
         ${ZLIB_LIBRARIES}
         ${BZIP2_LIBRARIES}
