@@ -63,6 +63,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
     std::vector<std::string> results;
     std::unordered_map<int64_t, uint64_t> start_ts;
     int idx = 0;
+    int64_t smallest_seq = INT64_MAX;
 
     // Submit initial set of requests
     for(int i = 0; i < queue_depth; i++) {
@@ -83,6 +84,8 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         }
         spdlog::debug("sent request");
 
+        smallest_seq = std::min(smallest_seq, seq);
+
         if (stats) {
             start_ts[seq] = start;
         }
@@ -91,8 +94,17 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
     while (elapsed < run_time*1000000) {
         std::string out;
         auto seq = client.poll_responses(out);
+        if(seq < smallest_seq) 
+        {
+            // Stale request
+            spdlog::debug("Recvd response with stale seq no: {}, {}, {}", seq, start_ts[seq], end);
+            e = std::chrono::high_resolution_clock::now();
+            elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(e - s).count());
+            continue;
+        }
         if (stats) {
             rdtscll(end);
+            
             double cycles = static_cast<double>(end - start_ts[seq]);
             latencies.push_back((cycles / ticks_per_ns) / client_batch_size);
         }
@@ -124,7 +136,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         e = std::chrono::high_resolution_clock::now();
         elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(e - s).count());
     }
-    
+
     e = std::chrono::high_resolution_clock::now(); 
     elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(e - s).count());
     if (stats)
