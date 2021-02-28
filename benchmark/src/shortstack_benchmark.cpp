@@ -82,7 +82,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         } else {
             seq = client.put(key, val);
         }
-        spdlog::debug("sent request");
+        spdlog::debug("sent request client_id:{}, seq_no:{}", client.get_client_id(), seq);
 
         smallest_seq = std::min(smallest_seq, seq);
 
@@ -106,11 +106,11 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
             rdtscll(end);
             
             double cycles = static_cast<double>(end - start_ts[seq]);
-            latencies.push_back((cycles / ticks_per_ns) / client_batch_size);
+            latencies.push_back((cycles / ticks_per_ns)/1000);
         }
         ops += 1;
 
-        spdlog::debug("recvd response");
+        spdlog::debug("recvd response client_id:{}, seq_no:{}", client.get_client_id(), seq);
 
         // Send new request
         auto kv_pair = trace[idx];
@@ -127,7 +127,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
         } else {
             seq = client.put(key, val);
         }
-        spdlog::debug("sent request");
+        spdlog::debug("sent request client_id:{}, seq_no:{}", client.get_client_id(), seq);
 
         if (stats) {
             start_ts[seq] = start;
@@ -153,11 +153,11 @@ void cooldown(std::vector<int> &latencies, int client_batch_size,
     run_benchmark(15, false, latencies, client_batch_size, trace, xput, client, qd);
 }
 
-void client(int idx, int client_batch_size, trace_vector &trace, std::string &output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth) {
+void client(int idx, int client_batch_size, trace_vector &trace, std::string output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth) {
     shortstack_client client;
     client.init(idx, hinfo);
 
-    std::cout << "Client initialized" << std::endl;
+    std::cout << "Client " << idx << " initialized" << std::endl;
     std::atomic<int> indiv_xput;
     std::atomic_init(&indiv_xput, 0);
     std::vector<int> latencies;
@@ -165,7 +165,7 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string &ou
     warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
     std::cout << "Beginning benchmark" << std::endl;
     run_benchmark(20, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
-    std::string location = output_directory + "/" + std::to_string(idx);
+    std::string location = output_directory + "/client" + std::to_string(idx)+ ".lat";
     std::ofstream out(location);
     std::string line("");
     for (auto lat : latencies) {
@@ -218,7 +218,8 @@ int main(int argc, char *argv[]) {
 
     int o;
     std::string hosts_file;
-    while ((o = getopt(argc, argv, "h:t:n:o:q:")) != -1) {
+    bool debug_mode = false;
+    while ((o = getopt(argc, argv, "h:t:n:o:q:g")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -235,10 +236,17 @@ int main(int argc, char *argv[]) {
             case 'q':
                 queue_depth = std::atoi(optarg);
                 break;
+            case 'g':
+                debug_mode = true;
+                break;
             default:
                 usage();
                 exit(-1);
         }
+    }
+
+    if(debug_mode) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     auto hinfo = std::make_shared<host_info>();
@@ -257,8 +265,8 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
-        threads.push_back(std::thread(client, std::ref(i), std::ref(client_batch_size), std::ref(trace),
-                          std::ref(output_directory), hinfo, std::ref(xput), queue_depth));
+        threads.push_back(std::thread(client, i, client_batch_size, std::ref(trace),
+                          output_directory, hinfo, std::ref(xput), queue_depth));
     }
     for (int i = 0; i < num_clients; i++)
         threads[i].join();

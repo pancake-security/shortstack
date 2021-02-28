@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 #include "distribution.h"
 #include "pancake_proxy.h"
@@ -223,7 +224,7 @@ int l1_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
-    while ((o = getopt(argc, argv, "h:d:i:")) != -1) {
+    while ((o = getopt(argc, argv, "h:d:i:g")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -233,6 +234,9 @@ int l1_main(int argc, char *argv[]) {
                 break;
             case 'i':
                 instance_name = std::string(optarg);
+                break;
+            case 'g':
+                spdlog::set_level(spdlog::level::debug);
                 break;
             default:
                 l1_usage();
@@ -300,6 +304,9 @@ int l2_main(int argc, char *argv[]) {
             case 'i':
                 instance_name = std::string(optarg);
                 break;
+            case 'g':
+                spdlog::set_level(spdlog::level::debug);
+                break;
             default:
                 l2_usage();
                 exit(-1);
@@ -365,6 +372,9 @@ int l3_main(int argc, char *argv[]) {
                 break;
             case 's':
                 storage_batch_size = std::atoi(optarg);
+                break;
+            case 'g':
+                spdlog::set_level(spdlog::level::debug);
                 break;
             default:
                 l3_usage();
