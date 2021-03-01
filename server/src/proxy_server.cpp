@@ -274,7 +274,7 @@ int l1_main(int argc, char *argv[]) {
     proxy->init_proxy(hinfo, instance_name, dinfo, num_cores);
 
     auto id_to_client = std::make_shared<thrift_response_client_map>();
-    auto proxy_server = thrift_server::create(proxy, "l1", id_to_client, proxy_port, 1);
+    auto proxy_server = thrift_server::create(proxy, "l1", id_to_client, proxy_port, num_cores);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
     wait_for_server_start(proxy_host, proxy_port);
     std::cout << "Proxy server is reachable" << std::endl;
@@ -347,7 +347,7 @@ int l2_main(int argc, char *argv[]) {
     std::shared_ptr<l2_proxy> proxy = std::make_shared<l2_proxy>();
     proxy->init_proxy(hinfo, instance_name, dinfo, num_cores);
 
-    auto proxy_server = l2_server::create(proxy, proxy_port, 15, 1);
+    auto proxy_server = l2_server::create(proxy, proxy_port, num_cores, num_cores);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
     wait_for_server_start(proxy_host, proxy_port);
     std::cout << "Proxy server is reachable" << std::endl;
@@ -420,9 +420,9 @@ int l3_main(int argc, char *argv[]) {
     auto id_to_client = std::make_shared<thrift_response_client_map>();
 
     std::shared_ptr<l3_proxy> proxy = std::make_shared<l3_proxy>();
-    proxy->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_client, num_cores);
+    proxy->init_proxy(hinfo, instance_name, num_cores, storage_batch_size, id_to_client, num_cores);
     
-    auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, 15, 1);
+    auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, num_cores, num_cores);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
     wait_for_server_start(proxy_host, proxy_port);
     std::cout << "Proxy server is reachable" << std::endl;
