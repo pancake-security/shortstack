@@ -6,7 +6,8 @@
 void l3_proxy::init_proxy(
     std::shared_ptr<host_info> hosts, std::string instance_name,
     int kvclient_threads, int storage_batch_size,
-    std::shared_ptr<thrift_response_client_map> client_map) {
+    std::shared_ptr<thrift_response_client_map> client_map,
+    int num_cores) {
 
   instance_name_ = instance_name;
   storage_batch_size_ = storage_batch_size;
@@ -21,7 +22,7 @@ void l3_proxy::init_proxy(
     throw std::runtime_error("Unkown instance name: " + instance_name);
   }
 
-  int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+  // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
   for (int i = 0; i < num_cores; i++) {
     auto q = std::make_shared<queue<l3_operation>>();
     operation_queues_.push_back(q);

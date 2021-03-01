@@ -224,7 +224,8 @@ int l1_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
-    while ((o = getopt(argc, argv, "h:d:i:g")) != -1) {
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    while ((o = getopt(argc, argv, "h:d:i:gc:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -237,6 +238,9 @@ int l1_main(int argc, char *argv[]) {
                 break;
             case 'g':
                 spdlog::set_level(spdlog::level::debug);
+                break;
+            case 'c':
+                num_cores = std::atoi(optarg);
                 break;
             default:
                 l1_usage();
@@ -267,7 +271,7 @@ int l1_main(int argc, char *argv[]) {
     dinfo->load(dist_file);
 
     std::shared_ptr<l1_proxy> proxy = std::make_shared<l1_proxy>();
-    proxy->init_proxy(hinfo, instance_name, dinfo);
+    proxy->init_proxy(hinfo, instance_name, dinfo, num_cores);
 
     auto id_to_client = std::make_shared<thrift_response_client_map>();
     auto proxy_server = thrift_server::create(proxy, "l1", id_to_client, proxy_port, 1);
@@ -293,7 +297,9 @@ int l2_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
-    while ((o = getopt(argc, argv, "h:d:i:g")) != -1) {
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+
+    while ((o = getopt(argc, argv, "h:d:i:gc:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -306,6 +312,9 @@ int l2_main(int argc, char *argv[]) {
                 break;
             case 'g':
                 spdlog::set_level(spdlog::level::debug);
+                break;
+            case 'c':
+                num_cores = std::atoi(optarg);
                 break;
             default:
                 l2_usage();
@@ -336,7 +345,7 @@ int l2_main(int argc, char *argv[]) {
     dinfo->load(dist_file);
 
     std::shared_ptr<l2_proxy> proxy = std::make_shared<l2_proxy>();
-    proxy->init_proxy(hinfo, instance_name, dinfo);
+    proxy->init_proxy(hinfo, instance_name, dinfo, num_cores);
 
     auto proxy_server = l2_server::create(proxy, proxy_port, 15, 1);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
@@ -362,7 +371,8 @@ int l3_main(int argc, char *argv[]) {
     std::string dist_file;
     std::string instance_name;
     int storage_batch_size;
-    while ((o = getopt(argc, argv, "h:i:s:g")) != -1) {
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    while ((o = getopt(argc, argv, "h:i:s:gc:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -375,6 +385,9 @@ int l3_main(int argc, char *argv[]) {
                 break;
             case 'g':
                 spdlog::set_level(spdlog::level::debug);
+                break;
+            case 'c':
+                num_cores = std::atoi(optarg);
                 break;
             default:
                 l3_usage();
@@ -407,7 +420,7 @@ int l3_main(int argc, char *argv[]) {
     auto id_to_client = std::make_shared<thrift_response_client_map>();
 
     std::shared_ptr<l3_proxy> proxy = std::make_shared<l3_proxy>();
-    proxy->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_client);
+    proxy->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_client, num_cores);
     
     auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, 15, 1);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });

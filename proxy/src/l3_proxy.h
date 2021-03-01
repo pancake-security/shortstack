@@ -37,7 +37,8 @@ class l3_proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   int kvclient_threads, int storage_batch_size,
-                  std::shared_ptr<thrift_response_client_map> client_map);
+                  std::shared_ptr<thrift_response_client_map> client_map,
+                  int num_cores);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read);

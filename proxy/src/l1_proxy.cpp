@@ -6,7 +6,8 @@
 
 void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
-                          std::shared_ptr<distribution_info> dist_info) {
+                          std::shared_ptr<distribution_info> dist_info,
+                          int num_cores) {
   instance_name_ = instance_name;
 
   if (!hosts->get_hostname(instance_name, server_host_name_)) {
@@ -34,7 +35,7 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
     l2_ports.push_back(h.port);
   }
 
-  int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+  // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
   for (int i = 0; i < num_cores; i++) {
     auto q = std::make_shared<queue<l1_operation>>();
     operation_queues_.push_back(q);

@@ -32,7 +32,7 @@ struct l1_operation {
 class l1_proxy : public proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
-                  std::shared_ptr<distribution_info> dist_info);
+                  std::shared_ptr<distribution_info> dist_info, int num_cores);
   void init(const std::vector<std::string> &keys,
             const std::vector<std::string> &values, void **args) override;
   void close() override;
