@@ -28,7 +28,7 @@ void l3_proxy::init_proxy(
     operation_queues_.push_back(q);
   }
 
-  cpp_redis::network::set_default_nb_workers(std::min(10, kvclient_threads));
+  cpp_redis::network::set_default_nb_workers(kvclient_threads);
 
   std::vector<host> kv_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
