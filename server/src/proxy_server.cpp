@@ -293,7 +293,7 @@ int l2_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
-    while ((o = getopt(argc, argv, "h:d:i:")) != -1) {
+    while ((o = getopt(argc, argv, "h:d:i:g")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -362,7 +362,7 @@ int l3_main(int argc, char *argv[]) {
     std::string dist_file;
     std::string instance_name;
     int storage_batch_size;
-    while ((o = getopt(argc, argv, "h:i:s:")) != -1) {
+    while ((o = getopt(argc, argv, "h:i:s:g")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
