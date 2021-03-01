@@ -136,7 +136,9 @@ void l3_proxy::responder_thread(){
         auto resp = respond_queue_.pop();
     
         std::vector<std::string>results;
-        results.push_back(resp.result);
+        // results.push_back(resp.result);
+        // TODO: Disabling response delivery for perf debugging
+        results.push_back("");
         id_to_client_->async_respond_client(resp.seq_id, resp.op_code, results);
     }
     std::cout << "Quitting response thread" << std::endl;
