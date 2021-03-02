@@ -19,6 +19,7 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   replica_to_label_ = dist_info->replica_to_label_;
   key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;
+  dummy_key_ = dist_info->dummy_key_;
 
   // initialize empty update cache
   update_cache_ = update_cache();

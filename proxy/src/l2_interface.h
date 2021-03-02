@@ -27,7 +27,7 @@ struct l2_operation {
 class l2proxy_interface {
 
 public:
-  l2proxy_interface(std::vector<std::string> hosts, std::vector<int> ports);
+  l2proxy_interface(std::vector<std::string> hosts, std::vector<int> ports, std::string dummy_key);
 
   void connect();
 
@@ -41,6 +41,8 @@ private:
   std::vector<std::shared_ptr<TTransport>> transports_;
   std::vector<std::shared_ptr<TProtocol>> protocols_;
   std::vector<std::shared_ptr<l2proxyClient>> clients_;
+
+  std::string dummy_key_;
   
 };
 

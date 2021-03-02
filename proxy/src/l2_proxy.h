@@ -54,6 +54,8 @@ private:
   std::vector<std::shared_ptr<l3proxy_interface>> l3_ifaces_;
   std::vector<std::shared_ptr<queue<l2_operation>>> operation_queues_;
 
+  std::string dummy_key_;
+
 };
 
 #endif // L2_PROXY_H

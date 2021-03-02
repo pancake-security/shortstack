@@ -40,7 +40,7 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
     auto q = std::make_shared<queue<l1_operation>>();
     operation_queues_.push_back(q);
     l2_ifaces_.push_back(
-        std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports));
+        std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_));
   }
 
   finished_.store(false);

@@ -1,11 +1,14 @@
 #include "l2_interface.h"
 
 #include "consistent_hash.h"
+#include "util.h"
 
 l2proxy_interface::l2proxy_interface(std::vector<std::string> hosts,
-                                     std::vector<int> ports) {
+                                     std::vector<int> ports,
+                                     std::string dummy_key) {
   hosts_ = hosts;
   ports_ = ports;
+  dummy_key_ = dummy_key;
 }
 
 void l2proxy_interface::connect() {
@@ -27,6 +30,13 @@ void l2proxy_interface::connect() {
 }
 
 void l2proxy_interface::send_op(const l2_operation &op) {
-    auto id = consistent_hash(op.key, clients_.size());
+    int id;
+    if(op.key == dummy_key_) {
+      // Randomly load balance requests to dummy key
+      id = rand_uint32(0, clients_.size() - 1);
+    } else {
+      id = consistent_hash(op.key, clients_.size());
+    }
+    
     clients_[id]->l2request(op.seq_id, op.key, op.replica, op.value);
 }
