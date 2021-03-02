@@ -7,10 +7,11 @@ void l3_proxy::init_proxy(
     std::shared_ptr<host_info> hosts, std::string instance_name,
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
-    int num_cores) {
+    int num_cores, bool encryption_enabled) {
 
   instance_name_ = instance_name;
   storage_batch_size_ = storage_batch_size;
+  encryption_enabled_ = encryption_enabled;
 
   id_to_client_ = client_map;
 
@@ -108,7 +109,7 @@ void l3_proxy::execute_batch(
   std::vector<std::string> storage_values;
   for (int i = 0; i < operations.size(); i++) {
     auto cipher = responses[i];
-    auto plaintext = enc_engine->decrypt(cipher);
+    auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
 
     if (operations[i].value != "") {
       plaintext = operations[i].value;
@@ -124,7 +125,7 @@ void l3_proxy::execute_batch(
       respond_queue_.push(resp);
     }
 
-    storage_values.push_back(enc_engine->encrypt(plaintext));
+    storage_values.push_back((encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext));
   }
   // std::cout << "put_batch start\n";
   storage_interface->put_batch(storage_keys, storage_values);

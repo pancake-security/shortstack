@@ -38,7 +38,7 @@ public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   int kvclient_threads, int storage_batch_size,
                   std::shared_ptr<thrift_response_client_map> client_map,
-                  int num_cores);
+                  int num_cores, bool encryption_enabled);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read);
@@ -72,6 +72,8 @@ private:
 
   int storage_batch_size_;
   const int64_t fake_client_id_ = -1995;
+
+  bool encryption_enabled_ = true;
 
   int GET = 0;
   int PUT = 1;
