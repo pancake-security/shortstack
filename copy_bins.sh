@@ -6,3 +6,4 @@ cp cmakebuild/redis-stable/src/redis-cli /local/deploy/
 cp cmakebuild/redis-stable/src/redis-benchmark /local/deploy/
 
 cp -r ./traces/* /local/deploy/
+cp -r ./sbin/* /local/deploy/
