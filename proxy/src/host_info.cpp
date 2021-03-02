@@ -16,7 +16,7 @@ std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream& str)
     std::stringstream          lineStream(line);
     std::string                cell;
 
-    while(std::getline(lineStream,cell, ','))
+    while(std::getline(lineStream,cell, ' '))
     {
         result.push_back(cell);
     }
@@ -42,7 +42,7 @@ bool host_info::load(std::string filename) {
             break;
         }
         
-        if(row.size() != 4) {
+        if(row.size() < 4) {
             std::cerr << "Invalid CSV row" << std::endl;
             return false;
         }
