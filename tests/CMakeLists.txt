@@ -12,6 +12,8 @@ add_executable(storage_interface_test
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.cpp
         ../libstorage/src/redis.h
+        ../proxy/src/MurmurHash2.cpp
+        ../proxy/src/MurmurHash2.h
         # ../libstorage/src/rocksdb.cpp
         # ../libstorage/src/rocksdb.h
         #../libstorage/src/src/memcached.cpp
@@ -111,6 +113,9 @@ add_executable(pancake_test
         ../proxy/src/util.h
         ../proxy/src/util.cpp
 
+        ../proxy/src/MurmurHash2.cpp
+        ../proxy/src/MurmurHash2.h
+
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp
@@ -191,6 +196,9 @@ add_executable(shortstack_test
         ../proxy/src/encryption_engine.cpp
         ../proxy/src/util.h
         ../proxy/src/util.cpp
+
+        ../proxy/src/MurmurHash2.cpp
+        ../proxy/src/MurmurHash2.h
 
         ../proxy/src/host_info.cpp
         ../proxy/src/host_info.h

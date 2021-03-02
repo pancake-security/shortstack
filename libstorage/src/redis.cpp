@@ -3,6 +3,7 @@
 //
 
 #include "redis.h"
+#include "MurmurHash2.h"
 
     redis::redis(const std::string &host_name, int port){
         this->clients.push_back(std::move(std::make_shared<cpp_redis::client>()));
@@ -27,7 +28,7 @@
     }
 
     std::string redis::get(const std::string &key){
-        auto idx = (std::hash<std::string>{}(std::string(key)) % clients.size());
+        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
         auto fut = clients[idx]->get(key);
         clients[idx]->commit();
         auto reply = fut.get();
@@ -38,7 +39,7 @@
     }
 
     void redis::put(const std::string &key, const std::string &value){
-        auto idx = (std::hash<std::string>{}(std::string(key)) % clients.size());
+        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
         auto fut = clients[idx]->set(key, value);
         clients[idx]->commit();
         auto reply = fut.get();
@@ -53,7 +54,7 @@
 
         // Gather all relevant storage interface's by id and create vector for key batch
         for (const auto &key: keys) {
-            auto id = (std::hash<std::string>{}(std::string(key)) % clients.size());
+            auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
             key_vectors[id].emplace_back(key);
         }
 
@@ -95,7 +96,7 @@
         // Gather all relevant storage interface's by id and create vector for key batch
         int i = 0;
         for (const auto &key: keys) {
-            auto id = (std::hash<std::string>{}(std::string(key)) % clients.size());
+            auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());;
             key_value_vector_pairs[id].push_back(std::make_pair(key, values[i]));
             i++;
         }
