@@ -12,12 +12,11 @@ shift;
 shift;
 shift;
 
-killall redis-server
 
 sudo sysctl -w net.core.somaxconn=1024
 sudo sysctl -w vm.overcommit_memory=1
 echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
-
+ulimit -n 10240
 
 taskset -c $coremask /local/deploy/redis-server --bind $hostname --port $port --save "" --appendonly no "$@" 2>/local/deploy/$iname.err 1>/local/deploy/$iname.out &
 echo "Started KV"

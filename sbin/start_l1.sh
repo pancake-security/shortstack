@@ -8,7 +8,8 @@ iname=$2
 shift;
 shift;
 
-killall proxy_server
+
+ulimit -n 10240
 
 taskset -c $coremask /local/deploy/proxy_server l1 -h /local/deploy/hosts.csv -d /local/deploy/distinfo.bin -i $iname "$@" 2>/local/deploy/$iname.err 1>/local/deploy/$iname.out &
 echo "Started L1 proxy"
