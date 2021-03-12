@@ -4,6 +4,7 @@
 
 #include "redis.h"
 #include "MurmurHash2.h"
+// #include <iostream>
 
     redis::redis(const std::string &host_name, int port){
         this->clients.push_back(std::move(std::make_shared<cpp_redis::client>()));
@@ -69,13 +70,18 @@
 
         std::vector< std::string> return_vector;
 
-        for (int i = 0; i < futures.size(); i++) {
+        // std::cout << "get_batch futures.size() == " << futures.size() << "\n";
+        while (!futures.empty()) {
             auto reply = futures.front().get();
             futures.pop();
             if (reply.is_error()){
                 throw std::runtime_error(reply.error());
             }
+            if(reply.is_null()) {
+                throw std::runtime_error("GET returned NULL value");
+            }
             auto reply_array = reply.as_array();
+            // std::cout << "reply_array.size() == " << reply_array.size() << "\n";
             for (auto nested_reply: reply_array){
                 if (nested_reply.is_error()){
                     throw std::runtime_error(nested_reply.error());
@@ -84,6 +90,7 @@
                     throw std::runtime_error("GET returned NULL value");
                 }
                 return_vector.push_back(nested_reply.as_string());
+                // std::cout << "pushed to return_vector" << futures.size() << "\n";
             }
         }
         return return_vector;
@@ -112,7 +119,7 @@
 
         std::shared_ptr<std::vector< std::string>> return_vector;
 
-        for (int i = 0; i < futures.size(); i++){
+        while (!futures.empty()){
             auto reply = futures.front().get();
             futures.pop();
             if (reply.is_error()){

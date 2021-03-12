@@ -497,19 +497,24 @@
         return !!result;
     };
 
+     // TODO: deal with value sizes greater than 4096
     std::string encryption_engine::encrypt(const std::string &plain_text) {
         unsigned char cipher_text[4096];
         int text_len = encrypt((unsigned char *)plain_text.c_str(), plain_text.length(), encryption_key_, iv_, cipher_text);
         assert(text_len > 0);
+        // printf("Converting to std::string, text_len=%d\n", text_len);
         std::string str((const char *)cipher_text, text_len);
         return str;
     };
 
+    // TODO: deal with value sizes greater than 4096
     std::string encryption_engine::decrypt(const std::string &cipher_text) {
         unsigned char text[4096];
         int text_len = decrypt((unsigned char *)cipher_text.c_str(), cipher_text.length(), encryption_key_, iv_, text);
         assert(text_len > 0);
-        return std::string(text, std::find(text, text + text_len, '\0'));
+        // printf("Converting to std::string, text_len=%d, text=%p, null_pos=%p\n", text_len, text, std::find(text, text + text_len, '\0'));
+        // std::cout << std::string(text, std::find(text, text + text_len, '\0')) << "\n";
+        return std::string((const char *)text, text_len);
     };
 
     std::string encryption_engine::hmac(const std::string &key) {

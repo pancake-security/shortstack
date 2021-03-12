@@ -104,11 +104,15 @@ void l3_proxy::execute_batch(
   } catch(std::exception& ex) {
     std::cout << ex.what();
   }
+
+  spdlog::debug("received GET responses, size={}", responses.size());
   
   // std::cout << "get_batch end\n";
   std::vector<std::string> storage_values;
   for (int i = 0; i < operations.size(); i++) {
+    // spdlog::debug("accessing response");
     auto cipher = responses[i];
+    spdlog::debug("decrypting value. len={}", cipher.size());
     auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
 
     if (operations[i].value != "") {
@@ -125,7 +129,9 @@ void l3_proxy::execute_batch(
       respond_queue_.push(resp);
     }
 
+    spdlog::debug("encrypting value. len={}", plaintext.size());
     storage_values.push_back((encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext));
+    // spdlog::debug("encryption done");
   }
   // std::cout << "put_batch start\n";
   storage_interface->put_batch(storage_keys, storage_values);
