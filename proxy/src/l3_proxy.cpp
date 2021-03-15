@@ -28,6 +28,12 @@ void l3_proxy::init_proxy(
     auto q = std::make_shared<queue<l3_operation>>();
     operation_queues_.push_back(q);
   }
+  for (int i = 0; i < num_cores; i++) {
+    auto q = std::make_shared<queue<crypto_operation>>();
+    crypto_queues_.push_back(q);
+  }
+
+  respond_queue_ = std::make_shared<queue<client_response>>();
 
   cpp_redis::network::set_default_nb_workers(kvclient_threads);
 
@@ -42,9 +48,21 @@ void l3_proxy::init_proxy(
     storage_ifaces_.push_back(storage_iface);
   }
 
+  for (int i = 0; i < num_cores; i++) {
+    auto storage_iface =
+        std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+    for (int j = 1; j < kv_hosts.size(); j++) {
+      storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+    }
+    storage_ifaces2_.push_back(storage_iface);
+  }
+
   finished_.store(false);
   for (int i = 0; i < num_cores; i++) {
-    threads_.push_back(std::thread(&l3_proxy::consumer_thread, this, i,
+    threads_.push_back(std::thread(&l3_proxy::consumer_thread, this, i));
+  }
+  for (int i = 0; i < num_cores; i++) {
+    threads_.push_back(std::thread(&l3_proxy::crypto_thread, this, i,
                                    new encryption_engine(encryption_engine_)));
   }
   threads_.push_back(std::thread(&l3_proxy::responder_thread, this));
@@ -65,87 +83,87 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
   operation_queues_[id]->push(operat);
 }
 
-void l3_proxy::consumer_thread(int id, encryption_engine *enc_engine) {
+void l3_proxy::consumer_thread(int id) {
   // TODO: Handle exceptions
 
   std::cerr << "Consumer " << id << " running" << std::endl;
 
   auto storage_iface = storage_ifaces_[id];
+  auto crypto_queue = crypto_queues_[id];
 
   while (true) {
-    std::vector<l3_operation> storage_batch;
-    while (storage_batch.size() < storage_batch_size_ && !finished_.load()) {
-      auto op = operation_queues_[id]->pop(); // Blocking call
-      spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-      storage_batch.push_back(op);
-    }
+    auto op = operation_queues_[id]->pop(); // Blocking call
+    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
     if (finished_.load()) {
       break;
     }
 
-    execute_batch(storage_batch, storage_iface, enc_engine);
+    // Send GET request to KV
+    // Execution will continue in crypto_thread
+    storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
+        spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+        // Enqueue task for crypto thread
+        crypto_operation crypto_op;
+        crypto_op.l3_op = op;
+        crypto_op.kv_response = resp_val;
+        crypto_queue->push(crypto_op);
+    });
   }
 }
 
-void l3_proxy::execute_batch(
-    const std::vector<l3_operation> &operations,
-    std::shared_ptr<storage_interface> storage_interface,
-    encryption_engine *enc_engine) {
 
-  std::vector<std::string> storage_keys;
-  for (int i = 0; i < operations.size(); i++) {
-    storage_keys.push_back(operations[i].label);
-  }
-  // std::cout << "get_batch start\n";
-  std::vector<std::string> responses;
-  try{
-    responses = storage_interface->get_batch(storage_keys);
-  } catch(std::exception& ex) {
-    std::cout << ex.what();
-  }
+void l3_proxy::crypto_thread(int id, encryption_engine *enc_engine) {
+  spdlog::info("Crypto worker {} started", id);
 
-  spdlog::debug("received GET responses, size={}", responses.size());
-  
-  // std::cout << "get_batch end\n";
-  std::vector<std::string> storage_values;
-  for (int i = 0; i < operations.size(); i++) {
-    // spdlog::debug("accessing response");
-    auto cipher = responses[i];
+  auto storage_iface = storage_ifaces2_[id];
+  auto fake_id = fake_client_id_;
+  auto resp_queue = respond_queue_;
+
+  while(true) {
+    auto crypto_op = crypto_queues_[id]->pop(); // Blocking call
+    spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
+
+    if (finished_.load()) {
+      break;
+    }
+
+    auto l3_op = crypto_op.l3_op;
+    auto cipher = crypto_op.kv_response;
     spdlog::debug("decrypting value. len={}", cipher.size());
     auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
 
-    if (operations[i].value != "") {
-      plaintext = operations[i].value;
-    }
-    
-    // Enqueue responses for real queries
-    if (operations[i].seq_id.client_id != fake_client_id_) {
-      client_response resp;
-      resp.seq_id = operations[i].seq_id;
-      resp.result = (operations[i].is_read) ? plaintext : "";
-      resp.op_code = (operations[i].is_read) ? GET : PUT;
-
-      respond_queue_.push(resp);
+    if (l3_op.value != "") {
+      plaintext = l3_op.value;
     }
 
     spdlog::debug("encrypting value. len={}", plaintext.size());
-    storage_values.push_back((encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext));
-    // spdlog::debug("encryption done");
+    auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
+
+    // Send PUT to KV
+    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext]() {
+      spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
+      // Enqueue responses for real queries
+      if (l3_op.seq_id.client_id != fake_id) {
+        client_response resp;
+        resp.seq_id = l3_op.seq_id;
+        resp.result = (l3_op.is_read) ? plaintext : "";
+        resp.op_code = (l3_op.is_read) ? OP_GET : OP_PUT;
+
+        resp_queue->push(resp);
+      }
+    });
   }
-  // std::cout << "put_batch start\n";
-  storage_interface->put_batch(storage_keys, storage_values);
-  // std::cout << "put_batch end\n";
 }
 
 void l3_proxy::responder_thread(){
     while (true){
-        auto resp = respond_queue_.pop();
+        auto resp = respond_queue_->pop();
     
         std::vector<std::string>results;
-        // results.push_back(resp.result);
-        // TODO: Disabling response delivery for perf debugging
-        results.push_back("");
+        results.push_back(resp.result);
+        // // TODO: Disabling response delivery for perf debugging
+        // results.push_back("");
         id_to_client_->async_respond_client(resp.seq_id, resp.op_code, results);
     }
     std::cout << "Quitting response thread" << std::endl;

@@ -54,6 +54,10 @@ int main(int argc, char *argv[]) {
     std::cout << "get 1 sent\n";
     assert(client->poll_responses(res) == req_id);
     std::cout << "get 1 response recvd\n";
+    if(res != "hello")
+    {
+        std::cout << "inconsistency " << res << "\n";
+    }
     assert(res == "hello");
 
     
@@ -80,6 +84,9 @@ int main(int argc, char *argv[]) {
     {
         std::string out;
         auto seq = client->poll_responses(out);
+        if(seq_to_key[seq] != out) {
+            std::cout << "Inconsistency! " << seq_to_key[seq] << ", " << out << "\n"; 
+        }
         assert(seq_to_key[seq] == out);
     }
 

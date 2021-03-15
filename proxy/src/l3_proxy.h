@@ -33,6 +33,14 @@ struct client_response {
   std::string result;
 };
 
+struct crypto_operation {
+  l3_operation l3_op;
+  std::string kv_response;
+};
+
+const int OP_GET = 0;
+const int OP_PUT = 1;
+
 class l3_proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
@@ -46,12 +54,13 @@ public:
   void close();
 
 private:
-  void consumer_thread(int id, encryption_engine *enc_engine);
+  void consumer_thread(int id);
+  void crypto_thread(int id, encryption_engine *enc_engine);
   void responder_thread();
 
-  void execute_batch(const std::vector<l3_operation> &operations,
-                     std::shared_ptr<storage_interface> storage_interface,
-                     encryption_engine *enc_engine);
+  // void execute_batch(const std::vector<l3_operation> &operations,
+  //                    std::shared_ptr<storage_interface> storage_interface,
+  //                    encryption_engine *enc_engine);
 
   std::string instance_name_;
   std::string server_host_name_;
@@ -61,22 +70,25 @@ private:
   // WARNING: Not thread-safe
   encryption_engine encryption_engine_;
 
-  // Per-consumer thread state
+  
   std::atomic<bool> finished_;
   std::vector<std::thread> threads_;
+
+  // Per-consumer thread state
   std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
   std::vector<std::shared_ptr<storage_interface>> storage_ifaces_;
 
+  // Per-crypto thread state
+  std::vector<std::shared_ptr<queue<crypto_operation>>> crypto_queues_;
+  std::vector<std::shared_ptr<storage_interface>> storage_ifaces2_;
+
   std::shared_ptr<thrift_response_client_map> id_to_client_;
-  queue<client_response> respond_queue_;
+  std::shared_ptr<queue<client_response>> respond_queue_;
 
   int storage_batch_size_;
   const int64_t fake_client_id_ = -1995;
 
   bool encryption_enabled_ = true;
-
-  int GET = 0;
-  int PUT = 1;
 };
 
 #endif // L3_PROXY_H
