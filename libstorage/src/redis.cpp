@@ -127,3 +127,29 @@
             }
         }
     }
+
+    void redis::async_get(const std::string &key, std::function<void (const std::string&)> callback) {
+        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        clients[idx]->get(key, [callback](cpp_redis::reply& reply) {
+            if (reply.is_error()){
+                throw std::runtime_error(reply.error());
+            }
+            if(reply.is_null()) {
+                throw std::runtime_error("GET returned NULL value");
+            }
+            callback(reply.as_string());
+        });
+        clients[idx]->commit();
+    }
+
+    void redis::async_put(const std::string &key, const std::string &value, std::function<void ()> callback) {
+        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        clients[idx]->set(key, value, [callback](cpp_redis::reply& reply) {
+            if (reply.is_error()){
+                throw std::runtime_error(reply.error());
+            }
+            callback();
+        });
+        clients[idx]->commit();
+    }
+

@@ -20,6 +20,9 @@ public:
     std::vector< std::string> get_batch(const std::vector<std::string> &keys) override;
     void put_batch(const std::vector< std::string> &keys, const std::vector<std::string> &values) override;
 
+    void async_get(const std::string &key, std::function<void (const std::string&)> callback) override;
+    void async_put(const std::string &key, const std::string &value, std::function<void ()> callback) override;
+
 private:
     std::vector<std::shared_ptr<cpp_redis::client>> clients;
 };

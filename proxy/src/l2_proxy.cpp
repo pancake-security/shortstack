@@ -93,7 +93,9 @@ void l2_proxy::consumer_thread(int id) {
       update_cache_.populate_replica_updates(
           op.key, op.value, key_to_number_of_replicas_[op.key]);
     }
+    // TODO: Currently check_for_update also clears the status bit. This can lead to inconsistency. The bit should be cleared only after PUT to KV is complete.
     auto plaintext_update = update_cache_.check_for_update(op.key, op.replica);
+    spdlog::debug("plaintext_update={}..., client_id:{}, seq_no:{}", plaintext_update.substr(0,5), op.seq_id.client_id, op.seq_id.client_seq_no);
 
     auto it = replica_to_label_.find(op.key + std::to_string(op.replica));
     if (it == replica_to_label_.end()) {
