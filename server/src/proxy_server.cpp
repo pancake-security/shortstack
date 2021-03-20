@@ -373,7 +373,9 @@ int l3_main(int argc, char *argv[]) {
     int storage_batch_size;
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
     bool encryption = true;
-    while ((o = getopt(argc, argv, "h:i:s:gc:p")) != -1) {
+    bool resp_delivery = true;
+    bool kv_interaction = true;
+    while ((o = getopt(argc, argv, "h:i:s:gc:prk")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -392,6 +394,12 @@ int l3_main(int argc, char *argv[]) {
                 break;
             case 'p':
                 encryption = false;
+                break;
+            case 'r':
+                resp_delivery = false;
+                break;
+            case 'k':
+                kv_interaction = false;
                 break;
             default:
                 l3_usage();
@@ -424,7 +432,7 @@ int l3_main(int argc, char *argv[]) {
     auto id_to_client = std::make_shared<thrift_response_client_map>();
 
     std::shared_ptr<l3_proxy> proxy = std::make_shared<l3_proxy>();
-    proxy->init_proxy(hinfo, instance_name, num_cores, storage_batch_size, id_to_client, num_cores, encryption);
+    proxy->init_proxy(hinfo, instance_name, num_cores, storage_batch_size, id_to_client, num_cores, encryption, resp_delivery, kv_interaction);
     
     auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, num_cores, num_cores);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });

@@ -26,6 +26,7 @@
 #include "thrift_response_client_map.h"
 #include "update_cache.h"
 #include "util.h"
+#include "dummy_kv.h"
 
 struct client_response {
   sequence_id seq_id;
@@ -46,7 +47,8 @@ public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   int kvclient_threads, int storage_batch_size,
                   std::shared_ptr<thrift_response_client_map> client_map,
-                  int num_cores, bool encryption_enabled);
+                  int num_cores, bool encryption_enabled, bool resp_delivery,
+                  bool kv_interaction);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read);
@@ -89,6 +91,8 @@ private:
   const int64_t fake_client_id_ = -1995;
 
   bool encryption_enabled_ = true;
+  bool resp_delivery_ = true;
+  bool kv_interaction_ = true;
 };
 
 #endif // L3_PROXY_H
