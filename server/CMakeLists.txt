@@ -95,6 +95,8 @@ add_executable(proxy_server
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp
+        ../libstorage/src/dummy_kv.h
+        ../libstorage/src/dummy_kv.cpp
         # ../libstorage/src/rocksdb.cpp
         # ../libstorage/src/rocksdb.h
         #../libstorage/src/memcached.cpp

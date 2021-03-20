@@ -7,11 +7,14 @@ void l3_proxy::init_proxy(
     std::shared_ptr<host_info> hosts, std::string instance_name,
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
-    int num_cores, bool encryption_enabled) {
+    int num_cores, bool encryption_enabled, bool resp_delivery,
+    bool kv_interaction) {
 
   instance_name_ = instance_name;
   storage_batch_size_ = storage_batch_size;
   encryption_enabled_ = encryption_enabled;
+  resp_delivery_ = resp_delivery;
+  kv_interaction_ = kv_interaction;
 
   id_to_client_ = client_map;
 
@@ -39,22 +42,35 @@ void l3_proxy::init_proxy(
 
   std::vector<host> kv_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
-  for (int i = 0; i < num_cores; i++) {
-    auto storage_iface =
-        std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
-    for (int j = 1; j < kv_hosts.size(); j++) {
-      storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+  if(kv_interaction_) {  
+    for (int i = 0; i < num_cores; i++) {
+      auto storage_iface =
+          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+      for (int j = 1; j < kv_hosts.size(); j++) {
+        storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      }
+      storage_ifaces_.push_back(storage_iface);
     }
-    storage_ifaces_.push_back(storage_iface);
-  }
 
-  for (int i = 0; i < num_cores; i++) {
-    auto storage_iface =
-        std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
-    for (int j = 1; j < kv_hosts.size(); j++) {
-      storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+    for (int i = 0; i < num_cores; i++) {
+      auto storage_iface =
+          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+      for (int j = 1; j < kv_hosts.size(); j++) {
+        storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      }
+      storage_ifaces2_.push_back(storage_iface);
+   }
+  } else {
+    for(int i = 0; i < num_cores; i++) {
+      auto storage_iface =
+          std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
+      storage_ifaces_.push_back(storage_iface);
     }
-    storage_ifaces2_.push_back(storage_iface);
+    for(int i = 0; i < num_cores; i++) {
+      auto storage_iface =
+          std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
+      storage_ifaces2_.push_back(storage_iface);
+    }
   }
 
   finished_.store(false);
@@ -161,7 +177,7 @@ void l3_proxy::responder_thread(){
         auto resp = respond_queue_->pop();
     
         std::vector<std::string>results;
-        results.push_back(resp.result);
+        results.push_back((resp_delivery_)?(resp.result):(""));
         // // TODO: Disabling response delivery for perf debugging
         // results.push_back("");
         id_to_client_->async_respond_client(resp.seq_id, resp.op_code, results);
