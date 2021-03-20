@@ -6,8 +6,9 @@
 void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
-                          int num_cores) {
+                          int num_cores, bool uc_enabled) {
   instance_name_ = instance_name;
+  update_cache_enabled_ = uc_enabled;
 
   if (!hosts->get_hostname(instance_name, server_host_name_)) {
     throw std::runtime_error("Unkown instance name: " + instance_name);
@@ -89,12 +90,18 @@ void l2_proxy::consumer_thread(int id) {
       continue;
     }
 
-    if (op.value != "") {
+    if (update_cache_enabled_ && op.value != "") {
       update_cache_.populate_replica_updates(
           op.key, op.value, key_to_number_of_replicas_[op.key]);
     }
     // TODO: Currently check_for_update also clears the status bit. This can lead to inconsistency. The bit should be cleared only after PUT to KV is complete.
-    auto plaintext_update = update_cache_.check_for_update(op.key, op.replica);
+    std::string plaintext_update;
+    if(update_cache_enabled_) {
+      plaintext_update = update_cache_.check_for_update(op.key, op.replica);
+    } else {
+      plaintext_update = op.value;
+    }
+    
     spdlog::debug("plaintext_update={}..., client_id:{}, seq_no:{}", plaintext_update.substr(0,5), op.seq_id.client_id, op.seq_id.client_seq_no);
 
     auto it = replica_to_label_.find(op.key + std::to_string(op.replica));
