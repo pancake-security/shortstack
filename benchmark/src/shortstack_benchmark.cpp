@@ -145,12 +145,12 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
 
 void warmup(std::vector<int> &latencies, int client_batch_size,
             trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
-    run_benchmark(15, false, latencies, client_batch_size, trace, xput, client, qd);
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd);
 }
 
 void cooldown(std::vector<int> &latencies, int client_batch_size,
                trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
-    run_benchmark(15, false, latencies, client_batch_size, trace, xput, client, qd);
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd);
 }
 
 void client(int idx, int client_batch_size, trace_vector &trace, std::string output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth) {
@@ -164,7 +164,7 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     std::cout << "Beginning warmup" << std::endl;
     warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
     std::cout << "Beginning benchmark" << std::endl;
-    run_benchmark(20, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
+    run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
     std::string location = output_directory + "/client" + std::to_string(idx)+ ".lat";
     std::ofstream out(location);
     std::string line("");

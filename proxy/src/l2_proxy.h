@@ -27,7 +27,8 @@
 class l2_proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
-                  std::shared_ptr<distribution_info> dist_info, int num_cores);
+                  std::shared_ptr<distribution_info> dist_info, int num_cores,
+                  bool uc_enabled);
 
   void async_operation(const sequence_id &seq_id, const std::string &key,
                        int replica, const std::string &value);
@@ -55,6 +56,7 @@ private:
   std::vector<std::shared_ptr<queue<l2_operation>>> operation_queues_;
 
   std::string dummy_key_;
+  bool update_cache_enabled_ = true;
 
 };
 

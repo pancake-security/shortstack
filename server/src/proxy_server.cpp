@@ -297,9 +297,10 @@ int l2_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
+    bool uc_enabled = true;
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
-    while ((o = getopt(argc, argv, "h:d:i:gc:")) != -1) {
+    while ((o = getopt(argc, argv, "h:d:i:gc:u")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -315,6 +316,9 @@ int l2_main(int argc, char *argv[]) {
                 break;
             case 'c':
                 num_cores = std::atoi(optarg);
+                break;
+            case 'u':
+                uc_enabled = false;
                 break;
             default:
                 l2_usage();
@@ -345,7 +349,7 @@ int l2_main(int argc, char *argv[]) {
     dinfo->load(dist_file);
 
     std::shared_ptr<l2_proxy> proxy = std::make_shared<l2_proxy>();
-    proxy->init_proxy(hinfo, instance_name, dinfo, num_cores);
+    proxy->init_proxy(hinfo, instance_name, dinfo, num_cores, uc_enabled);
 
     auto proxy_server = l2_server::create(proxy, proxy_port, num_cores, num_cores);
     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
