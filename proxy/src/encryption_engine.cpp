@@ -24,6 +24,9 @@
         assert(vkey_ != NULL);
         if (vkey_ == NULL)
             exit(1);
+
+        // TODO: dealloc on destroy
+        scratch_buf_ = new unsigned char[1 * 1024 * 1024];
     };
 
     encryption_engine::encryption_engine(const encryption_engine& enc_engine) {
@@ -499,7 +502,8 @@
 
      // TODO: deal with value sizes greater than 4096
     std::string encryption_engine::encrypt(const std::string &plain_text) {
-        unsigned char cipher_text[4096];
+        // unsigned char cipher_text[4096];
+        unsigned char *cipher_text = scratch_buf_;
         int text_len = encrypt((unsigned char *)plain_text.c_str(), plain_text.length(), encryption_key_, iv_, cipher_text);
         assert(text_len > 0);
         // printf("Converting to std::string, text_len=%d\n", text_len);
@@ -509,7 +513,8 @@
 
     // TODO: deal with value sizes greater than 4096
     std::string encryption_engine::decrypt(const std::string &cipher_text) {
-        unsigned char text[4096];
+        // unsigned char text[4096];
+        unsigned char *text = scratch_buf_;
         int text_len = decrypt((unsigned char *)cipher_text.c_str(), cipher_text.length(), encryption_key_, iv_, text);
         assert(text_len > 0);
         // printf("Converting to std::string, text_len=%d, text=%p, null_pos=%p\n", text_len, text, std::find(text, text + text_len, '\0'));

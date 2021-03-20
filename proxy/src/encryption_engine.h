@@ -49,5 +49,7 @@ private:
     unsigned char * encryption_key_;
     unsigned char * iv_;
     EVP_PKEY * skey_, * vkey_;
+
+    unsigned char *scratch_buf_;
 };
 #endif //PANCAKE_BASIC_CRYPTO_H
