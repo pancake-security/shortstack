@@ -45,6 +45,9 @@
         if (vkey_ == NULL)
             exit(1);
 
+        // TODO: dealloc on destroy
+        scratch_buf_ = new unsigned char[1 * 1024 * 1024];
+
     };
 
     void encryption_engine::handle_errors(void) {
