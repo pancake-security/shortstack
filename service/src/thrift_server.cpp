@@ -16,7 +16,7 @@ std::shared_ptr<TServer> thrift_server::create(std::shared_ptr<proxy> proxy_ptr,
     auto socket = std::make_shared<TNonblockingServerSocket>(port);
     socket->setSendTimeout(1200000);
 
-    std::shared_ptr<ThreadManager> threadManager = ThreadManager::newSimpleThreadManager(15);
+    std::shared_ptr<ThreadManager> threadManager = ThreadManager::newSimpleThreadManager(num_threads);
     std::shared_ptr<PosixThreadFactory> threadFactory = std::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
     threadManager->threadFactory(threadFactory);
     threadManager->start();

@@ -32,7 +32,7 @@ struct l1_operation {
 class l1_proxy : public proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
-                  std::shared_ptr<distribution_info> dist_info, int num_cores);
+                  std::shared_ptr<distribution_info> dist_info, int local_idx);
   void init(const std::vector<std::string> &keys,
             const std::vector<std::string> &values, void **args) override;
   void close() override;
@@ -88,12 +88,14 @@ private:
                              std::vector<l2_operation> &batch,
                              std::vector<bool> &is_trues);
 
+  void process_op(const l1_operation &op);
+
   bool is_true_distribution();
   void consumer_thread(int id);
 
   std::atomic<bool> finished_;
-  std::string server_host_name_;
-  int server_port_;
+  // std::string server_host_name_;
+  // int server_port_;
 
   // Distribution state
   int num_keys_;
@@ -104,11 +106,13 @@ private:
   distribution real_distribution_;
 
   // Per-consumer thread state
-  std::vector<std::thread> threads_;
-  std::vector<std::shared_ptr<l2proxy_interface>> l2_ifaces_;
-  std::vector<std::shared_ptr<queue<l1_operation>>> operation_queues_;
+  // std::vector<std::thread> threads_;
+  std::shared_ptr<l2proxy_interface> l2_iface_;
+  // std::vector<std::shared_ptr<queue<l1_operation>>> operation_queues_;
+  std::queue<l1_operation> internal_queue_;
 
   const int64_t fake_client_id_ = -1995;
+  int idx_;
 };
 
 #endif // L1_PROXY_H
