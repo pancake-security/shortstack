@@ -42,7 +42,7 @@ bool host_info::load(std::string filename) {
             break;
         }
         
-        if(row.size() < 4) {
+        if(row.size() < 7) {
             std::cerr << "Invalid CSV row" << std::endl;
             return false;
         }
@@ -67,6 +67,27 @@ bool host_info::load(std::string filename) {
             h.port = std::stoi(row[3]);
         } catch(...) {
             std::cerr << "Invalid port number: " << row[3] << std::endl;
+            return false;
+        }
+
+        try {
+            h.row = std::stoi(row[4]);
+        } catch(...) {
+            std::cerr << "Invalid row number: " << row[4] << std::endl;
+            return false;
+        }
+
+        try {
+            h.column = std::stoi(row[5]);
+        } catch(...) {
+            std::cerr << "Invalid column number: " << row[5] << std::endl;
+            return false;
+        }
+
+        try {
+            h.num_workers = std::stoi(row[6]);
+        } catch(...) {
+            std::cerr << "Invalid number of workers: " << row[6] << std::endl;
             return false;
         }
         
@@ -96,10 +117,43 @@ bool host_info::get_port(const std::string &instance_name, int &port) {
     return false;
 }
 
+bool host_info::get_host(const std::string &instance_name, host& out) {
+    for(auto &h : hosts_) {
+        if(h.instance_name == instance_name) {
+            out = h;
+            return true;
+        }
+    }
+    return false;
+}
+
 void host_info::get_hosts_by_type(int type, std::vector<host> &hosts) {
     for(auto &h : hosts_) {
       if(h.type == type) {
           hosts.push_back(h);
       }  
     }
+}
+
+bool host_info::get_base_idx(const std::string &instance_name, int &idx) {
+    host h;
+    if(!get_host(instance_name, h)) {
+        return false;
+    } 
+
+    std::vector<host> peer_hosts;
+    get_hosts_by_type(h.type, peer_hosts);
+
+    int ret = 0;
+    for(auto &peer : peer_hosts) 
+    {   
+        if(peer.row == h.row && peer.column < h.column) {
+            ret += peer.num_workers;
+        }
+    }
+
+
+    idx = ret;
+    return true;
+
 }

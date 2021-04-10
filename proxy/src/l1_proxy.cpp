@@ -7,16 +7,17 @@
 void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
-                          int num_cores) {
+                          int local_idx) {
   instance_name_ = instance_name;
+  host this_host;
 
-  if (!hosts->get_hostname(instance_name, server_host_name_)) {
+  if (!hosts->get_host(instance_name, this_host)) {
     throw std::runtime_error("Unkown instance name: " + instance_name);
   }
 
-  if (!hosts->get_port(instance_name, server_port_)) {
-    throw std::runtime_error("Unkown instance name: " + instance_name);
-  }
+  int base_idx;
+  hosts->get_base_idx(instance_name_, base_idx);
+  idx_ = base_idx + local_idx;
 
   num_keys_ = dist_info->num_keys_;
   dummy_key_ = dist_info->dummy_key_;
@@ -35,18 +36,12 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
     l2_ports.push_back(h.port);
   }
 
-  // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-  for (int i = 0; i < num_cores; i++) {
-    auto q = std::make_shared<queue<l1_operation>>();
-    operation_queues_.push_back(q);
-    l2_ifaces_.push_back(
-        std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_));
-  }
+  l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
 
-  finished_.store(false);
-  for (int i = 0; i < num_cores; i++) {
-    threads_.push_back(std::thread(&l1_proxy::consumer_thread, this, i));
-  }
+  // Connect to L2 servers
+  l2_iface_->connect();
+
+  spdlog::info("Worker {}: L2 interface connected", idx_);
 
   spdlog::info("Initialized L1 proxy");
 }
@@ -152,7 +147,8 @@ void l1_proxy::async_get(const sequence_id &seq_id, int queue_id,
   operat.seq_id = seq_id;
   operat.key = key;
   operat.value = "";
-  operation_queues_[queue_id % operation_queues_.size()]->push(operat);
+  // operation_queues_[queue_id % operation_queues_.size()]->push(operat);
+  process_op(operat);
 };
 
 void l1_proxy::put(int queue_id, const std::string &key,
@@ -166,7 +162,8 @@ void l1_proxy::async_put(const sequence_id &seq_id, int queue_id,
   operat.seq_id = seq_id;
   operat.key = key;
   operat.value = value;
-  operation_queues_[queue_id % operation_queues_.size()]->push(operat);
+  // operation_queues_[queue_id % operation_queues_.size()]->push(operat);
+  process_op(operat);
 };
 
 std::vector<std::string>
@@ -194,41 +191,55 @@ void l1_proxy::async_put_batch(const sequence_id &seq_id, int queue_id,
   }
 };
 
-void l1_proxy::consumer_thread(int id) {
-  // TODO: Handle exceptions
-  std::shared_ptr<l2proxy_interface> l2_interface = l2_ifaces_[id];
+// void l1_proxy::consumer_thread(int id) {
+//   // TODO: Handle exceptions
+//   std::shared_ptr<l2proxy_interface> l2_interface = l2_ifaces_[id];
 
-  // Connect to L2 servers
-  l2_interface->connect();
+//   // Connect to L2 servers
+//   l2_interface->connect();
 
-  spdlog::info("Consumer {}: L2 interface connected", id);
+//   spdlog::info("Consumer {}: L2 interface connected", id);
 
-  std::queue<l1_operation> internal_queue;
-  while (true) {
-    auto op = operation_queues_[id]->pop(); // Blocking call
-    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-    if (finished_.load()) {
-      break;
-    }
+//   std::queue<l1_operation> internal_queue;
+//   while (true) {
+//     auto op = operation_queues_[id]->pop(); // Blocking call
+//     spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+//     if (finished_.load()) {
+//       break;
+//     }
 
+//     // Generate batch
+//     internal_queue.push(op);
+//     std::vector<l2_operation> batch;
+//     std::vector<bool> is_trues;
+//     create_security_batch(internal_queue, batch, is_trues);
+
+//     // Forward requests in batch to L2
+//     for (auto &op : batch) {
+//       l2_interface->send_op(op);
+//     }
+//   }
+// }
+
+void l1_proxy::process_op(const l1_operation &op) {
+  spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
     // Generate batch
-    internal_queue.push(op);
+    internal_queue_.push(op);
     std::vector<l2_operation> batch;
     std::vector<bool> is_trues;
-    create_security_batch(internal_queue, batch, is_trues);
+    create_security_batch(internal_queue_, batch, is_trues);
 
     // Forward requests in batch to L2
     for (auto &op : batch) {
-      l2_interface->send_op(op);
+      l2_iface_->send_op(op);
     }
-  }
 }
 
 void l1_proxy::flush() { throw std::logic_error("not implemented"); }
 
 void l1_proxy::close() {
-  finished_.store(true);
-  // TODO: push dummy ops into queues to unblock
-  for (int i = 0; i < threads_.size(); i++)
-    threads_[i].join();
+  // finished_.store(true);
+  // // TODO: push dummy ops into queues to unblock
+  // for (int i = 0; i < threads_.size(); i++)
+  //   threads_[i].join();
 }

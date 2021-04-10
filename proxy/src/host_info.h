@@ -14,9 +14,12 @@ struct host {
   int type;
   std::string hostname;
   int port;
+  int row;
+  int column;
+  int num_workers;
 };
 
-// CSV Schema: instance_name, instance_type, hostname, port
+// CSV Schema: instance_name, instance_type, hostname, port, row, column, num_workers
 
 class host_info {
 
@@ -25,6 +28,8 @@ public:
   bool get_hostname(const std::string &instance_name, std::string &hostname);
   bool get_port(const std::string &instance_name, int &port);
 
+  bool get_host(const std::string &instance_name, host &out);
+  bool get_base_idx(const std::string &instance_name, int &idx);
   void get_hosts_by_type(int type, std::vector<host> &hosts);
 
 private:

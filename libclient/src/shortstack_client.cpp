@@ -9,25 +9,30 @@ void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts
 
   std::vector<std::string> l1_hostnames;
   std::vector<int> l1_ports;
+  std::vector<int> l1_workers;
   for (auto h : l1_hosts) {
     l1_hostnames.push_back(h.hostname);
     l1_ports.push_back(h.port);
+    l1_workers.push_back(h.num_workers);
   }
 
   for(int i = 0; i < l1_hostnames.size(); i++) 
   {
-    auto socket = std::make_shared<TSocket>(l1_hostnames[i], l1_ports[i]);
-    socket->setRecvTimeout(10000);
-    socket->setSendTimeout(1200000);
-    auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-    auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-    auto client = std::make_shared<pancake_thriftClient>(protocol);
-    transport->open();
+    for(int j = 0; j < l1_workers[i]; j++)
+     {
+        auto socket = std::make_shared<TSocket>(l1_hostnames[i], l1_ports[i] + j);
+        socket->setRecvTimeout(10000);
+        socket->setSendTimeout(1200000);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<pancake_thriftClient>(protocol);
+        transport->open();
 
-    l1_sockets_.push_back(socket);
-    l1_transports_.push_back(transport);
-    l1_protocols_.push_back(protocol);
-    l1_clients_.push_back(client);
+        l1_sockets_.push_back(socket);
+        l1_transports_.push_back(transport);
+        l1_protocols_.push_back(protocol);
+        l1_clients_.push_back(client);
+     }
   }
 
   std::vector<host> l3_hosts;
