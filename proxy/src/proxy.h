@@ -32,6 +32,8 @@ public:
     virtual void async_get_batch(const sequence_id &seq_id, int queue_id, const std::vector<std::string> &keys) = 0;
     virtual void async_put_batch(const sequence_id &seq_id, int queue_id, const std::vector<std::string> &keys, const std::vector<std::string> &values) = 0;
 
+    virtual void chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) = 0;
+
 
 };
 #endif //PANCAKE_PROXY_H

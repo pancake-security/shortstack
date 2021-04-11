@@ -23,7 +23,7 @@ public:
     explicit thrift_handler_factory(std::shared_ptr<proxy> proxy, const std::string &proxy_type, 
                                     std::shared_ptr<thrift_response_client_map> id_to_client);
     pancake_thriftIf *getHandler(const ::apache::thrift::TConnectionInfo &connInfo) override;
-    void releaseHandler(pancake_thriftIf *anIf) override;
+    void releaseHandler(block_request_serviceIf *anIf) override;
 
 private:
     std::shared_ptr<proxy> proxy_;

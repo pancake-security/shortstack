@@ -178,6 +178,14 @@ void l1_proxy::async_get_batch(const sequence_id &seq_id, int queue_id,
   }
 };
 
+void l1_proxy::run_command(const sequence_id &seq, const arg_list &args) {
+  // TODO: Implement
+}
+
+void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
+  // TODO: Implement
+}
+
 void l1_proxy::put_batch(int queue_id, const std::vector<std::string> &keys,
                          const std::vector<std::string> &values) {
   throw std::logic_error("Not implemented");
@@ -242,4 +250,8 @@ void l1_proxy::close() {
   // // TODO: push dummy ops into queues to unblock
   // for (int i = 0; i < threads_.size(); i++)
   //   threads_[i].join();
+}
+
+void l1_proxy::chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) {
+  chain_request(seq, arguments);
 }

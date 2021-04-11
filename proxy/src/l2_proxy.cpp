@@ -137,3 +137,11 @@ void l2_proxy::close() {
     threads_[i].join();
   }
 }
+
+void l2_proxy::run_command(const sequence_id &seq, const arg_list &args) {
+  // TODO: Implement
+}
+
+void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
+  // TODO: Implement
+}

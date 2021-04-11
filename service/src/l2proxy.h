@@ -10,6 +10,7 @@
 #include <thrift/TDispatchProcessor.h>
 #include <thrift/async/TConcurrentClientSyncInfo.h>
 #include "proxy_types.h"
+#include "block_request_service.h"
 
 
 
@@ -18,20 +19,20 @@
   #pragma warning (disable : 4250 ) //inheriting methods via dominance 
 #endif
 
-class l2proxyIf {
+class l2proxyIf : virtual public block_request_serviceIf {
  public:
   virtual ~l2proxyIf() {}
   virtual void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value) = 0;
 };
 
-class l2proxyIfFactory {
+class l2proxyIfFactory : virtual public block_request_serviceIfFactory {
  public:
   typedef l2proxyIf Handler;
 
   virtual ~l2proxyIfFactory() {}
 
   virtual l2proxyIf* getHandler(const ::apache::thrift::TConnectionInfo& connInfo) = 0;
-  virtual void releaseHandler(l2proxyIf* /* handler */) = 0;
+  virtual void releaseHandler(block_request_serviceIf* /* handler */) = 0;
 };
 
 class l2proxyIfSingletonFactory : virtual public l2proxyIfFactory {
@@ -42,13 +43,13 @@ class l2proxyIfSingletonFactory : virtual public l2proxyIfFactory {
   virtual l2proxyIf* getHandler(const ::apache::thrift::TConnectionInfo&) {
     return iface_.get();
   }
-  virtual void releaseHandler(l2proxyIf* /* handler */) {}
+  virtual void releaseHandler(block_request_serviceIf* /* handler */) {}
 
  protected:
   ::apache::thrift::stdcxx::shared_ptr<l2proxyIf> iface_;
 };
 
-class l2proxyNull : virtual public l2proxyIf {
+class l2proxyNull : virtual public l2proxyIf , virtual public block_request_serviceNull {
  public:
   virtual ~l2proxyNull() {}
   void l2request(const sequence_id& /* seq_id */, const std::string& /* key */, const int32_t /* replica */, const std::string& /* value */) {
@@ -126,25 +127,11 @@ class l2proxy_l2request_pargs {
 
 };
 
-class l2proxyClient : virtual public l2proxyIf {
+class l2proxyClient : virtual public l2proxyIf, public block_request_serviceClient {
  public:
-  l2proxyClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-    setProtocol(prot);
-  }
-  l2proxyClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    setProtocol(iprot,oprot);
-  }
- private:
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
-  }
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    piprot_=iprot;
-    poprot_=oprot;
-    iprot_ = iprot.get();
-    oprot_ = oprot.get();
-  }
- public:
+  l2proxyClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
+    block_request_serviceClient(prot, prot) {}
+  l2proxyClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) :    block_request_serviceClient(iprot, oprot) {}
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
@@ -153,14 +140,9 @@ class l2proxyClient : virtual public l2proxyIf {
   }
   void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
   void send_l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
- protected:
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
-  ::apache::thrift::protocol::TProtocol* iprot_;
-  ::apache::thrift::protocol::TProtocol* oprot_;
 };
 
-class l2proxyProcessor : public ::apache::thrift::TDispatchProcessor {
+class l2proxyProcessor : public block_request_serviceProcessor {
  protected:
   ::apache::thrift::stdcxx::shared_ptr<l2proxyIf> iface_;
   virtual bool dispatchCall(::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, const std::string& fname, int32_t seqid, void* callContext);
@@ -171,6 +153,7 @@ class l2proxyProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_l2request(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   l2proxyProcessor(::apache::thrift::stdcxx::shared_ptr<l2proxyIf> iface) :
+    block_request_serviceProcessor(iface),
     iface_(iface) {
     processMap_["l2request"] = &l2proxyProcessor::process_l2request;
   }
@@ -189,15 +172,20 @@ class l2proxyProcessorFactory : public ::apache::thrift::TProcessorFactory {
   ::apache::thrift::stdcxx::shared_ptr< l2proxyIfFactory > handlerFactory_;
 };
 
-class l2proxyMultiface : virtual public l2proxyIf {
+class l2proxyMultiface : virtual public l2proxyIf, public block_request_serviceMultiface {
  public:
   l2proxyMultiface(std::vector<apache::thrift::stdcxx::shared_ptr<l2proxyIf> >& ifaces) : ifaces_(ifaces) {
+    std::vector<apache::thrift::stdcxx::shared_ptr<l2proxyIf> >::iterator iter;
+    for (iter = ifaces.begin(); iter != ifaces.end(); ++iter) {
+      block_request_serviceMultiface::add(*iter);
+    }
   }
   virtual ~l2proxyMultiface() {}
  protected:
   std::vector<apache::thrift::stdcxx::shared_ptr<l2proxyIf> > ifaces_;
   l2proxyMultiface() {}
   void add(::apache::thrift::stdcxx::shared_ptr<l2proxyIf> iface) {
+    block_request_serviceMultiface::add(iface);
     ifaces_.push_back(iface);
   }
  public:
@@ -215,25 +203,11 @@ class l2proxyMultiface : virtual public l2proxyIf {
 // The 'concurrent' client is a thread safe client that correctly handles
 // out of order responses.  It is slower than the regular client, so should
 // only be used when you need to share a connection among multiple threads
-class l2proxyConcurrentClient : virtual public l2proxyIf {
+class l2proxyConcurrentClient : virtual public l2proxyIf, public block_request_serviceConcurrentClient {
  public:
-  l2proxyConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-    setProtocol(prot);
-  }
-  l2proxyConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    setProtocol(iprot,oprot);
-  }
- private:
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
-  }
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    piprot_=iprot;
-    poprot_=oprot;
-    iprot_ = iprot.get();
-    oprot_ = oprot.get();
-  }
- public:
+  l2proxyConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
+    block_request_serviceConcurrentClient(prot, prot) {}
+  l2proxyConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) :    block_request_serviceConcurrentClient(iprot, oprot) {}
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
@@ -242,12 +216,6 @@ class l2proxyConcurrentClient : virtual public l2proxyIf {
   }
   void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
   void send_l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
- protected:
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
-  ::apache::thrift::protocol::TProtocol* iprot_;
-  ::apache::thrift::protocol::TProtocol* oprot_;
-  ::apache::thrift::async::TConcurrentClientSyncInfo sync_;
 };
 
 #ifdef _MSC_VER

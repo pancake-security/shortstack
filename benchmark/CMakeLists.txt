@@ -38,6 +38,11 @@ add_executable(proxy_benchmark
         ../service/src/proxy_constants.cpp
         ../service/src/proxy_constants.h
 
+        ../service/src/block_request_service.h
+        ../service/src/block_request_service.cpp
+        ../service/src/block_response_service.h
+        ../service/src/block_response_service.cpp
+
         ../service/src/l3proxy.h
         ../service/src/l3proxy.cpp
 
@@ -127,6 +132,11 @@ add_executable(shortstack_benchmark
 
         ../service/src/l3proxy.h
         ../service/src/l3proxy.cpp
+
+        ../service/src/block_request_service.h
+        ../service/src/block_request_service.cpp
+        ../service/src/block_response_service.h
+        ../service/src/block_response_service.cpp
 
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h

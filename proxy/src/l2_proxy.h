@@ -23,8 +23,9 @@
 #include "queue.h"
 #include "update_cache.h"
 #include "util.h"
+#include "chain_module.h"
 
-class l2_proxy {
+class l2_proxy: public chain_module {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   std::shared_ptr<distribution_info> dist_info, int num_cores,
@@ -34,6 +35,9 @@ public:
                        int replica, const std::string &value);
 
   void close();
+
+  void run_command(const sequence_id &seq, const arg_list &args) override;
+  void replication_complete(const sequence_id &seq, const arg_list &args) override;
 
 private:
   void consumer_thread(int id);

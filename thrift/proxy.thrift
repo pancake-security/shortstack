@@ -4,7 +4,17 @@ struct sequence_id {
   3: required i64 server_seq_no,
 }
 
-service pancake_thrift{
+service block_request_service {
+  // Chain request (at non-head node)
+  oneway void chain_request(1: sequence_id seq, 2: i32 block_id, 3: list<binary> arguments),
+}
+
+service block_response_service {
+  // Chain acknowledgement (at non-head node)
+  oneway void chain_ack(1: sequence_id seq),
+}
+
+service pancake_thrift extends block_request_service{
   i64 get_client_id();
   void register_client_id(1: i32 block_id, 2: i64 client_id);
   oneway void async_get(1:sequence_id seq_id, 2:string key);
@@ -21,7 +31,7 @@ service pancake_thrift_response{
   oneway void async_response(1:sequence_id seq_id, 2:i32 op_code, 3:list<string>result);
 }
 
-service l2proxy {
+service l2proxy extends block_request_service {
   oneway void l2request(1:sequence_id seq_id, 2:string key, 3:i32 replica, 4:string value);
 }
 

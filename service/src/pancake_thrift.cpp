@@ -590,14 +590,14 @@ uint32_t pancake_thrift_async_get_batch_args::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->keys.clear();
-            uint32_t _size2;
-            ::apache::thrift::protocol::TType _etype5;
-            xfer += iprot->readListBegin(_etype5, _size2);
-            this->keys.resize(_size2);
-            uint32_t _i6;
-            for (_i6 = 0; _i6 < _size2; ++_i6)
+            uint32_t _size9;
+            ::apache::thrift::protocol::TType _etype12;
+            xfer += iprot->readListBegin(_etype12, _size9);
+            this->keys.resize(_size9);
+            uint32_t _i13;
+            for (_i13 = 0; _i13 < _size9; ++_i13)
             {
-              xfer += iprot->readString(this->keys[_i6]);
+              xfer += iprot->readString(this->keys[_i13]);
             }
             xfer += iprot->readListEnd();
           }
@@ -630,10 +630,10 @@ uint32_t pancake_thrift_async_get_batch_args::write(::apache::thrift::protocol::
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->keys.size()));
-    std::vector<std::string> ::const_iterator _iter7;
-    for (_iter7 = this->keys.begin(); _iter7 != this->keys.end(); ++_iter7)
+    std::vector<std::string> ::const_iterator _iter14;
+    for (_iter14 = this->keys.begin(); _iter14 != this->keys.end(); ++_iter14)
     {
-      xfer += oprot->writeString((*_iter7));
+      xfer += oprot->writeString((*_iter14));
     }
     xfer += oprot->writeListEnd();
   }
@@ -661,10 +661,10 @@ uint32_t pancake_thrift_async_get_batch_pargs::write(::apache::thrift::protocol:
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->keys)).size()));
-    std::vector<std::string> ::const_iterator _iter8;
-    for (_iter8 = (*(this->keys)).begin(); _iter8 != (*(this->keys)).end(); ++_iter8)
+    std::vector<std::string> ::const_iterator _iter15;
+    for (_iter15 = (*(this->keys)).begin(); _iter15 != (*(this->keys)).end(); ++_iter15)
     {
-      xfer += oprot->writeString((*_iter8));
+      xfer += oprot->writeString((*_iter15));
     }
     xfer += oprot->writeListEnd();
   }
@@ -713,14 +713,14 @@ uint32_t pancake_thrift_async_put_batch_args::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->keys.clear();
-            uint32_t _size9;
-            ::apache::thrift::protocol::TType _etype12;
-            xfer += iprot->readListBegin(_etype12, _size9);
-            this->keys.resize(_size9);
-            uint32_t _i13;
-            for (_i13 = 0; _i13 < _size9; ++_i13)
+            uint32_t _size16;
+            ::apache::thrift::protocol::TType _etype19;
+            xfer += iprot->readListBegin(_etype19, _size16);
+            this->keys.resize(_size16);
+            uint32_t _i20;
+            for (_i20 = 0; _i20 < _size16; ++_i20)
             {
-              xfer += iprot->readString(this->keys[_i13]);
+              xfer += iprot->readString(this->keys[_i20]);
             }
             xfer += iprot->readListEnd();
           }
@@ -733,14 +733,14 @@ uint32_t pancake_thrift_async_put_batch_args::read(::apache::thrift::protocol::T
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->values.clear();
-            uint32_t _size14;
-            ::apache::thrift::protocol::TType _etype17;
-            xfer += iprot->readListBegin(_etype17, _size14);
-            this->values.resize(_size14);
-            uint32_t _i18;
-            for (_i18 = 0; _i18 < _size14; ++_i18)
+            uint32_t _size21;
+            ::apache::thrift::protocol::TType _etype24;
+            xfer += iprot->readListBegin(_etype24, _size21);
+            this->values.resize(_size21);
+            uint32_t _i25;
+            for (_i25 = 0; _i25 < _size21; ++_i25)
             {
-              xfer += iprot->readString(this->values[_i18]);
+              xfer += iprot->readString(this->values[_i25]);
             }
             xfer += iprot->readListEnd();
           }
@@ -773,10 +773,10 @@ uint32_t pancake_thrift_async_put_batch_args::write(::apache::thrift::protocol::
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->keys.size()));
-    std::vector<std::string> ::const_iterator _iter19;
-    for (_iter19 = this->keys.begin(); _iter19 != this->keys.end(); ++_iter19)
+    std::vector<std::string> ::const_iterator _iter26;
+    for (_iter26 = this->keys.begin(); _iter26 != this->keys.end(); ++_iter26)
     {
-      xfer += oprot->writeString((*_iter19));
+      xfer += oprot->writeString((*_iter26));
     }
     xfer += oprot->writeListEnd();
   }
@@ -785,10 +785,10 @@ uint32_t pancake_thrift_async_put_batch_args::write(::apache::thrift::protocol::
   xfer += oprot->writeFieldBegin("values", ::apache::thrift::protocol::T_LIST, 3);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->values.size()));
-    std::vector<std::string> ::const_iterator _iter20;
-    for (_iter20 = this->values.begin(); _iter20 != this->values.end(); ++_iter20)
+    std::vector<std::string> ::const_iterator _iter27;
+    for (_iter27 = this->values.begin(); _iter27 != this->values.end(); ++_iter27)
     {
-      xfer += oprot->writeString((*_iter20));
+      xfer += oprot->writeString((*_iter27));
     }
     xfer += oprot->writeListEnd();
   }
@@ -816,10 +816,10 @@ uint32_t pancake_thrift_async_put_batch_pargs::write(::apache::thrift::protocol:
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->keys)).size()));
-    std::vector<std::string> ::const_iterator _iter21;
-    for (_iter21 = (*(this->keys)).begin(); _iter21 != (*(this->keys)).end(); ++_iter21)
+    std::vector<std::string> ::const_iterator _iter28;
+    for (_iter28 = (*(this->keys)).begin(); _iter28 != (*(this->keys)).end(); ++_iter28)
     {
-      xfer += oprot->writeString((*_iter21));
+      xfer += oprot->writeString((*_iter28));
     }
     xfer += oprot->writeListEnd();
   }
@@ -828,10 +828,10 @@ uint32_t pancake_thrift_async_put_batch_pargs::write(::apache::thrift::protocol:
   xfer += oprot->writeFieldBegin("values", ::apache::thrift::protocol::T_LIST, 3);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->values)).size()));
-    std::vector<std::string> ::const_iterator _iter22;
-    for (_iter22 = (*(this->values)).begin(); _iter22 != (*(this->values)).end(); ++_iter22)
+    std::vector<std::string> ::const_iterator _iter29;
+    for (_iter29 = (*(this->values)).begin(); _iter29 != (*(this->values)).end(); ++_iter29)
     {
-      xfer += oprot->writeString((*_iter22));
+      xfer += oprot->writeString((*_iter29));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1231,14 +1231,14 @@ uint32_t pancake_thrift_get_batch_args::read(::apache::thrift::protocol::TProtoc
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->keys.clear();
-            uint32_t _size23;
-            ::apache::thrift::protocol::TType _etype26;
-            xfer += iprot->readListBegin(_etype26, _size23);
-            this->keys.resize(_size23);
-            uint32_t _i27;
-            for (_i27 = 0; _i27 < _size23; ++_i27)
+            uint32_t _size30;
+            ::apache::thrift::protocol::TType _etype33;
+            xfer += iprot->readListBegin(_etype33, _size30);
+            this->keys.resize(_size30);
+            uint32_t _i34;
+            for (_i34 = 0; _i34 < _size30; ++_i34)
             {
-              xfer += iprot->readString(this->keys[_i27]);
+              xfer += iprot->readString(this->keys[_i34]);
             }
             xfer += iprot->readListEnd();
           }
@@ -1267,10 +1267,10 @@ uint32_t pancake_thrift_get_batch_args::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 1);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->keys.size()));
-    std::vector<std::string> ::const_iterator _iter28;
-    for (_iter28 = this->keys.begin(); _iter28 != this->keys.end(); ++_iter28)
+    std::vector<std::string> ::const_iterator _iter35;
+    for (_iter35 = this->keys.begin(); _iter35 != this->keys.end(); ++_iter35)
     {
-      xfer += oprot->writeString((*_iter28));
+      xfer += oprot->writeString((*_iter35));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1294,10 +1294,10 @@ uint32_t pancake_thrift_get_batch_pargs::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 1);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->keys)).size()));
-    std::vector<std::string> ::const_iterator _iter29;
-    for (_iter29 = (*(this->keys)).begin(); _iter29 != (*(this->keys)).end(); ++_iter29)
+    std::vector<std::string> ::const_iterator _iter36;
+    for (_iter36 = (*(this->keys)).begin(); _iter36 != (*(this->keys)).end(); ++_iter36)
     {
-      xfer += oprot->writeString((*_iter29));
+      xfer += oprot->writeString((*_iter36));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1338,14 +1338,14 @@ uint32_t pancake_thrift_get_batch_result::read(::apache::thrift::protocol::TProt
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->success.clear();
-            uint32_t _size30;
-            ::apache::thrift::protocol::TType _etype33;
-            xfer += iprot->readListBegin(_etype33, _size30);
-            this->success.resize(_size30);
-            uint32_t _i34;
-            for (_i34 = 0; _i34 < _size30; ++_i34)
+            uint32_t _size37;
+            ::apache::thrift::protocol::TType _etype40;
+            xfer += iprot->readListBegin(_etype40, _size37);
+            this->success.resize(_size37);
+            uint32_t _i41;
+            for (_i41 = 0; _i41 < _size37; ++_i41)
             {
-              xfer += iprot->readString(this->success[_i34]);
+              xfer += iprot->readString(this->success[_i41]);
             }
             xfer += iprot->readListEnd();
           }
@@ -1376,10 +1376,10 @@ uint32_t pancake_thrift_get_batch_result::write(::apache::thrift::protocol::TPro
     xfer += oprot->writeFieldBegin("success", ::apache::thrift::protocol::T_LIST, 0);
     {
       xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->success.size()));
-      std::vector<std::string> ::const_iterator _iter35;
-      for (_iter35 = this->success.begin(); _iter35 != this->success.end(); ++_iter35)
+      std::vector<std::string> ::const_iterator _iter42;
+      for (_iter42 = this->success.begin(); _iter42 != this->success.end(); ++_iter42)
       {
-        xfer += oprot->writeString((*_iter35));
+        xfer += oprot->writeString((*_iter42));
       }
       xfer += oprot->writeListEnd();
     }
@@ -1420,14 +1420,14 @@ uint32_t pancake_thrift_get_batch_presult::read(::apache::thrift::protocol::TPro
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             (*(this->success)).clear();
-            uint32_t _size36;
-            ::apache::thrift::protocol::TType _etype39;
-            xfer += iprot->readListBegin(_etype39, _size36);
-            (*(this->success)).resize(_size36);
-            uint32_t _i40;
-            for (_i40 = 0; _i40 < _size36; ++_i40)
+            uint32_t _size43;
+            ::apache::thrift::protocol::TType _etype46;
+            xfer += iprot->readListBegin(_etype46, _size43);
+            (*(this->success)).resize(_size43);
+            uint32_t _i47;
+            for (_i47 = 0; _i47 < _size43; ++_i47)
             {
-              xfer += iprot->readString((*(this->success))[_i40]);
+              xfer += iprot->readString((*(this->success))[_i47]);
             }
             xfer += iprot->readListEnd();
           }
@@ -1478,14 +1478,14 @@ uint32_t pancake_thrift_put_batch_args::read(::apache::thrift::protocol::TProtoc
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->keys.clear();
-            uint32_t _size41;
-            ::apache::thrift::protocol::TType _etype44;
-            xfer += iprot->readListBegin(_etype44, _size41);
-            this->keys.resize(_size41);
-            uint32_t _i45;
-            for (_i45 = 0; _i45 < _size41; ++_i45)
+            uint32_t _size48;
+            ::apache::thrift::protocol::TType _etype51;
+            xfer += iprot->readListBegin(_etype51, _size48);
+            this->keys.resize(_size48);
+            uint32_t _i52;
+            for (_i52 = 0; _i52 < _size48; ++_i52)
             {
-              xfer += iprot->readString(this->keys[_i45]);
+              xfer += iprot->readString(this->keys[_i52]);
             }
             xfer += iprot->readListEnd();
           }
@@ -1498,14 +1498,14 @@ uint32_t pancake_thrift_put_batch_args::read(::apache::thrift::protocol::TProtoc
         if (ftype == ::apache::thrift::protocol::T_LIST) {
           {
             this->values.clear();
-            uint32_t _size46;
-            ::apache::thrift::protocol::TType _etype49;
-            xfer += iprot->readListBegin(_etype49, _size46);
-            this->values.resize(_size46);
-            uint32_t _i50;
-            for (_i50 = 0; _i50 < _size46; ++_i50)
+            uint32_t _size53;
+            ::apache::thrift::protocol::TType _etype56;
+            xfer += iprot->readListBegin(_etype56, _size53);
+            this->values.resize(_size53);
+            uint32_t _i57;
+            for (_i57 = 0; _i57 < _size53; ++_i57)
             {
-              xfer += iprot->readString(this->values[_i50]);
+              xfer += iprot->readString(this->values[_i57]);
             }
             xfer += iprot->readListEnd();
           }
@@ -1534,10 +1534,10 @@ uint32_t pancake_thrift_put_batch_args::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 1);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->keys.size()));
-    std::vector<std::string> ::const_iterator _iter51;
-    for (_iter51 = this->keys.begin(); _iter51 != this->keys.end(); ++_iter51)
+    std::vector<std::string> ::const_iterator _iter58;
+    for (_iter58 = this->keys.begin(); _iter58 != this->keys.end(); ++_iter58)
     {
-      xfer += oprot->writeString((*_iter51));
+      xfer += oprot->writeString((*_iter58));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1546,10 +1546,10 @@ uint32_t pancake_thrift_put_batch_args::write(::apache::thrift::protocol::TProto
   xfer += oprot->writeFieldBegin("values", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>(this->values.size()));
-    std::vector<std::string> ::const_iterator _iter52;
-    for (_iter52 = this->values.begin(); _iter52 != this->values.end(); ++_iter52)
+    std::vector<std::string> ::const_iterator _iter59;
+    for (_iter59 = this->values.begin(); _iter59 != this->values.end(); ++_iter59)
     {
-      xfer += oprot->writeString((*_iter52));
+      xfer += oprot->writeString((*_iter59));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1573,10 +1573,10 @@ uint32_t pancake_thrift_put_batch_pargs::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeFieldBegin("keys", ::apache::thrift::protocol::T_LIST, 1);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->keys)).size()));
-    std::vector<std::string> ::const_iterator _iter53;
-    for (_iter53 = (*(this->keys)).begin(); _iter53 != (*(this->keys)).end(); ++_iter53)
+    std::vector<std::string> ::const_iterator _iter60;
+    for (_iter60 = (*(this->keys)).begin(); _iter60 != (*(this->keys)).end(); ++_iter60)
     {
-      xfer += oprot->writeString((*_iter53));
+      xfer += oprot->writeString((*_iter60));
     }
     xfer += oprot->writeListEnd();
   }
@@ -1585,10 +1585,10 @@ uint32_t pancake_thrift_put_batch_pargs::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeFieldBegin("values", ::apache::thrift::protocol::T_LIST, 2);
   {
     xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRING, static_cast<uint32_t>((*(this->values)).size()));
-    std::vector<std::string> ::const_iterator _iter54;
-    for (_iter54 = (*(this->values)).begin(); _iter54 != (*(this->values)).end(); ++_iter54)
+    std::vector<std::string> ::const_iterator _iter61;
+    for (_iter61 = (*(this->values)).begin(); _iter61 != (*(this->values)).end(); ++_iter61)
     {
-      xfer += oprot->writeString((*_iter54));
+      xfer += oprot->writeString((*_iter61));
     }
     xfer += oprot->writeListEnd();
   }
@@ -2097,16 +2097,7 @@ bool pancake_thriftProcessor::dispatchCall(::apache::thrift::protocol::TProtocol
   ProcessMap::iterator pfn;
   pfn = processMap_.find(fname);
   if (pfn == processMap_.end()) {
-    iprot->skip(::apache::thrift::protocol::T_STRUCT);
-    iprot->readMessageEnd();
-    iprot->getTransport()->readEnd();
-    ::apache::thrift::TApplicationException x(::apache::thrift::TApplicationException::UNKNOWN_METHOD, "Invalid method name: '"+fname+"'");
-    oprot->writeMessageBegin(fname, ::apache::thrift::protocol::T_EXCEPTION, seqid);
-    x.write(oprot);
-    oprot->writeMessageEnd();
-    oprot->getTransport()->writeEnd();
-    oprot->getTransport()->flush();
-    return true;
+    return block_request_serviceProcessor::dispatchCall(iprot, oprot, fname, seqid, callContext);
   }
   (this->*(pfn->second))(seqid, iprot, oprot, callContext);
   return true;

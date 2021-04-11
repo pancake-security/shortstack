@@ -53,6 +53,12 @@ add_executable(proxy_server
         ../service/src/l3_server.h
         ../service/src/l3_server.cpp
 
+        ../service/src/block_request_service.h
+        ../service/src/block_request_service.cpp
+        ../service/src/block_response_service.h
+        ../service/src/block_response_service.cpp
+        
+
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
         ../proxy/src/proxy.h
@@ -92,6 +98,15 @@ add_executable(proxy_server
         ../proxy/src/initializer.h
         ../proxy/src/initializer.cpp
 
+        ../proxy/src/block_id_parser.h
+        ../proxy/src/block_id_parser.cpp
+        ../proxy/src/chain_request_client.h
+        ../proxy/src/chain_request_client.cpp
+        ../proxy/src/chain_response_client.h
+        ../proxy/src/chain_response_client.cpp
+        ../proxy/src/chain_module.h
+        ../proxy/src/chain_module.cpp
+        
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
         ../libstorage/src/redis.cpp

@@ -10,6 +10,7 @@
 #include <thrift/TDispatchProcessor.h>
 #include <thrift/async/TConcurrentClientSyncInfo.h>
 #include "proxy_types.h"
+#include "block_request_service.h"
 
 
 
@@ -18,7 +19,7 @@
   #pragma warning (disable : 4250 ) //inheriting methods via dominance 
 #endif
 
-class pancake_thriftIf {
+class pancake_thriftIf : virtual public block_request_serviceIf {
  public:
   virtual ~pancake_thriftIf() {}
   virtual int64_t get_client_id() = 0;
@@ -33,14 +34,14 @@ class pancake_thriftIf {
   virtual void put_batch(const std::vector<std::string> & keys, const std::vector<std::string> & values) = 0;
 };
 
-class pancake_thriftIfFactory {
+class pancake_thriftIfFactory : virtual public block_request_serviceIfFactory {
  public:
   typedef pancake_thriftIf Handler;
 
   virtual ~pancake_thriftIfFactory() {}
 
   virtual pancake_thriftIf* getHandler(const ::apache::thrift::TConnectionInfo& connInfo) = 0;
-  virtual void releaseHandler(pancake_thriftIf* /* handler */) = 0;
+  virtual void releaseHandler(block_request_serviceIf* /* handler */) = 0;
 };
 
 class pancake_thriftIfSingletonFactory : virtual public pancake_thriftIfFactory {
@@ -51,13 +52,13 @@ class pancake_thriftIfSingletonFactory : virtual public pancake_thriftIfFactory 
   virtual pancake_thriftIf* getHandler(const ::apache::thrift::TConnectionInfo&) {
     return iface_.get();
   }
-  virtual void releaseHandler(pancake_thriftIf* /* handler */) {}
+  virtual void releaseHandler(block_request_serviceIf* /* handler */) {}
 
  protected:
   ::apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> iface_;
 };
 
-class pancake_thriftNull : virtual public pancake_thriftIf {
+class pancake_thriftNull : virtual public pancake_thriftIf , virtual public block_request_serviceNull {
  public:
   virtual ~pancake_thriftNull() {}
   int64_t get_client_id() {
@@ -910,25 +911,11 @@ class pancake_thrift_put_batch_presult {
 
 };
 
-class pancake_thriftClient : virtual public pancake_thriftIf {
+class pancake_thriftClient : virtual public pancake_thriftIf, public block_request_serviceClient {
  public:
-  pancake_thriftClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-    setProtocol(prot);
-  }
-  pancake_thriftClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    setProtocol(iprot,oprot);
-  }
- private:
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
-  }
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    piprot_=iprot;
-    poprot_=oprot;
-    iprot_ = iprot.get();
-    oprot_ = oprot.get();
-  }
- public:
+  pancake_thriftClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
+    block_request_serviceClient(prot, prot) {}
+  pancake_thriftClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) :    block_request_serviceClient(iprot, oprot) {}
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
@@ -961,14 +948,9 @@ class pancake_thriftClient : virtual public pancake_thriftIf {
   void put_batch(const std::vector<std::string> & keys, const std::vector<std::string> & values);
   void send_put_batch(const std::vector<std::string> & keys, const std::vector<std::string> & values);
   void recv_put_batch();
- protected:
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
-  ::apache::thrift::protocol::TProtocol* iprot_;
-  ::apache::thrift::protocol::TProtocol* oprot_;
 };
 
-class pancake_thriftProcessor : public ::apache::thrift::TDispatchProcessor {
+class pancake_thriftProcessor : public block_request_serviceProcessor {
  protected:
   ::apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> iface_;
   virtual bool dispatchCall(::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, const std::string& fname, int32_t seqid, void* callContext);
@@ -988,6 +970,7 @@ class pancake_thriftProcessor : public ::apache::thrift::TDispatchProcessor {
   void process_put_batch(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   pancake_thriftProcessor(::apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> iface) :
+    block_request_serviceProcessor(iface),
     iface_(iface) {
     processMap_["get_client_id"] = &pancake_thriftProcessor::process_get_client_id;
     processMap_["register_client_id"] = &pancake_thriftProcessor::process_register_client_id;
@@ -1015,15 +998,20 @@ class pancake_thriftProcessorFactory : public ::apache::thrift::TProcessorFactor
   ::apache::thrift::stdcxx::shared_ptr< pancake_thriftIfFactory > handlerFactory_;
 };
 
-class pancake_thriftMultiface : virtual public pancake_thriftIf {
+class pancake_thriftMultiface : virtual public pancake_thriftIf, public block_request_serviceMultiface {
  public:
   pancake_thriftMultiface(std::vector<apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> >& ifaces) : ifaces_(ifaces) {
+    std::vector<apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> >::iterator iter;
+    for (iter = ifaces.begin(); iter != ifaces.end(); ++iter) {
+      block_request_serviceMultiface::add(*iter);
+    }
   }
   virtual ~pancake_thriftMultiface() {}
  protected:
   std::vector<apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> > ifaces_;
   pancake_thriftMultiface() {}
   void add(::apache::thrift::stdcxx::shared_ptr<pancake_thriftIf> iface) {
+    block_request_serviceMultiface::add(iface);
     ifaces_.push_back(iface);
   }
  public:
@@ -1124,25 +1112,11 @@ class pancake_thriftMultiface : virtual public pancake_thriftIf {
 // The 'concurrent' client is a thread safe client that correctly handles
 // out of order responses.  It is slower than the regular client, so should
 // only be used when you need to share a connection among multiple threads
-class pancake_thriftConcurrentClient : virtual public pancake_thriftIf {
+class pancake_thriftConcurrentClient : virtual public pancake_thriftIf, public block_request_serviceConcurrentClient {
  public:
-  pancake_thriftConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-    setProtocol(prot);
-  }
-  pancake_thriftConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    setProtocol(iprot,oprot);
-  }
- private:
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
-  setProtocol(prot,prot);
-  }
-  void setProtocol(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) {
-    piprot_=iprot;
-    poprot_=oprot;
-    iprot_ = iprot.get();
-    oprot_ = oprot.get();
-  }
- public:
+  pancake_thriftConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
+    block_request_serviceConcurrentClient(prot, prot) {}
+  pancake_thriftConcurrentClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> iprot, apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> oprot) :    block_request_serviceConcurrentClient(iprot, oprot) {}
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getInputProtocol() {
     return piprot_;
   }
@@ -1175,12 +1149,6 @@ class pancake_thriftConcurrentClient : virtual public pancake_thriftIf {
   void put_batch(const std::vector<std::string> & keys, const std::vector<std::string> & values);
   int32_t send_put_batch(const std::vector<std::string> & keys, const std::vector<std::string> & values);
   void recv_put_batch(const int32_t seqid);
- protected:
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
-  apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
-  ::apache::thrift::protocol::TProtocol* iprot_;
-  ::apache::thrift::protocol::TProtocol* oprot_;
-  ::apache::thrift::async::TConcurrentClientSyncInfo sync_;
 };
 
 #ifdef _MSC_VER

@@ -99,6 +99,11 @@ add_executable(pancake_test
         ../service/src/proxy_constants.cpp
         ../service/src/proxy_constants.h
 
+        ../service/src/block_request_service.h
+        ../service/src/block_request_service.cpp
+        ../service/src/block_response_service.h
+        ../service/src/block_response_service.cpp
+
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
         ../proxy/src/proxy.h
@@ -182,6 +187,11 @@ add_executable(shortstack_test
 
         ../service/src/l3proxy.h
         ../service/src/l3proxy.cpp
+
+        ../service/src/block_request_service.h
+        ../service/src/block_request_service.cpp
+        ../service/src/block_response_service.h
+        ../service/src/block_response_service.cpp
 
         ../proxy/src/pancake_proxy.cpp
         ../proxy/src/pancake_proxy.h
