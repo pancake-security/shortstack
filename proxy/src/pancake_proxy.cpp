@@ -464,3 +464,7 @@ void pancake_proxy::close() {
     for (int i = 0; i < threads_.size(); i++)
         threads_[i].join();
 }
+
+void pancake_proxy::chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) {
+    throw std::logic_error("Not supported");
+}

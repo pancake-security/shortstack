@@ -9,7 +9,7 @@ class l2_handler_factory : public l2proxyIfFactory {
 public:
     explicit l2_handler_factory(std::shared_ptr<l2_proxy> proxy);
     l2proxyIf *getHandler(const ::apache::thrift::TConnectionInfo &connInfo) override;
-    void releaseHandler(l2proxyIf *anIf) override;
+    void releaseHandler(block_request_serviceIf* anIf) override;
 
 private:
     std::shared_ptr<l2_proxy> proxy_;

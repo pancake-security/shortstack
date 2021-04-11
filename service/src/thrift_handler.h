@@ -52,6 +52,8 @@ public:
 
     void async_put_batch(const sequence_id& seq_id, const std::vector<std::string> & keys, const std::vector<std::string> & values);
 
+    void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
+
 private:
     int operation_count_ = 0;
     std::shared_ptr<proxy> proxy_;

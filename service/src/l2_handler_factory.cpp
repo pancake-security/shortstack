@@ -16,7 +16,7 @@ l2proxyIf* l2_handler_factory::getHandler(const ::apache::thrift::TConnectionInf
     return new l2_handler(proxy_, protocol);
 }
 
-void l2_handler_factory::releaseHandler(l2proxyIf *handler) {
+void l2_handler_factory::releaseHandler(block_request_serviceIf* handler) {
     auto br_handler = reinterpret_cast<l2_handler *>(handler);
     delete handler;
 }

@@ -22,6 +22,7 @@
 #include "proxy.h"
 #include "queue.h"
 #include "util.h"
+#include "chain_module.h"
 
 struct l1_operation {
   sequence_id seq_id;
@@ -29,7 +30,7 @@ struct l1_operation {
   std::string value;
 };
 
-class l1_proxy : public proxy {
+class l1_proxy : public proxy, public chain_module {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   std::shared_ptr<distribution_info> dist_info, int local_idx);
@@ -73,6 +74,12 @@ public:
   std::future<std::string> get_future(int queue_id, const std::string &key);
   std::future<std::string> put_future(int queue_id, const std::string &key,
                                       const std::string &value);
+
+  void chain_req(const sequence_id& seq, const std::vector<std::string> & arguments);
+
+  void run_command(const sequence_id &seq, const arg_list &args) override;
+
+  void replication_complete(const sequence_id &seq, const arg_list &args) override;
 
   void flush();
 

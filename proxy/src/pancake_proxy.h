@@ -55,6 +55,8 @@ public:
     std::future<std::string> get_future(int queue_id, const std::string &key);
     std::future<std::string> put_future(int queue_id, const std::string &key, const std::string &value);
 
+    void chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) override;
+
     void flush();
 
     std::string output_location_ = "log";

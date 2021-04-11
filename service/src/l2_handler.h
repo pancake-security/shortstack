@@ -23,6 +23,8 @@ public:
   void l2request(const sequence_id &seq_id, const std::string &key,
                  const int32_t replica, const std::string &value);
 
+  void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
+
 private:
   std::shared_ptr<l2_proxy> proxy_;
 
