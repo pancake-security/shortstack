@@ -22,6 +22,9 @@ struct l2_operation {
   std::string key;
   int replica;
   std::string value;
+
+  void serialize(std::vector<std::string> & args);
+  int deserialize(const std::vector<std::string> & args, int idx);
 };
 
 class l2proxy_interface {

@@ -19,6 +19,32 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   hosts->get_base_idx(instance_name_, base_idx);
   idx_ = base_idx + local_idx;
 
+  // Setup chain_module
+  std::vector<host> replicas;
+  hosts->get_replicas(HOST_TYPE_L1, this_host.column, replicas);
+  chain_role role;
+  if(replicas.size() == 1) {
+    role = chain_role::singleton;
+  } else if (replicas.front().instance_name == this_host.instance_name) {
+    role = chain_role::head;
+  } else if (replicas.back().instance_name == this_host.instance_name) {
+    role = chain_role::tail;
+  } else {
+    role = chain_role::mid;
+  }
+  std::vector<std::string> chain;
+  std::string next_block_id = "nil";
+  int next_row = this_host.row + 1;
+  for(auto &h : replicas) {
+    auto bid = block_id_parser::make(h.hostname, h.port + local_idx, h.port + local_idx, local_idx);
+    chain.push_back(bid);
+    if(h.row == next_row) {
+      next_block_id = bid;
+    }
+  }
+  setup("/", chain, role, next_block_id);
+  spdlog::info("Worker {}: Chain module setup", idx_);
+
   num_keys_ = dist_info->num_keys_;
   dummy_key_ = dist_info->dummy_key_;
   delta_ = 0.5;
@@ -26,22 +52,24 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   fake_distribution_ = dist_info->fake_distribution_;
   real_distribution_ = dist_info->real_distribution_;
 
-  std::vector<host> l2_hosts;
-  hosts->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
+  if(is_tail()) {
+    std::vector<host> l2_hosts;
+    hosts->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
 
-  std::vector<std::string> l2_hostnames;
-  std::vector<int> l2_ports;
-  for (auto h : l2_hosts) {
-    l2_hostnames.push_back(h.hostname);
-    l2_ports.push_back(h.port);
+    std::vector<std::string> l2_hostnames;
+    std::vector<int> l2_ports;
+    for (auto h : l2_hosts) {
+      l2_hostnames.push_back(h.hostname);
+      l2_ports.push_back(h.port);
+    }
+
+    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
+
+    // Connect to L2 servers
+    l2_iface_->connect();
+
+    spdlog::info("Worker {}: L2 interface connected", idx_);
   }
-
-  l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
-
-  // Connect to L2 servers
-  l2_iface_->connect();
-
-  spdlog::info("Worker {}: L2 interface connected", idx_);
 
   spdlog::info("Initialized L1 proxy");
 }
@@ -179,11 +207,36 @@ void l1_proxy::async_get_batch(const sequence_id &seq_id, int queue_id,
 };
 
 void l1_proxy::run_command(const sequence_id &seq, const arg_list &args) {
-  // TODO: Implement
+  // TODO: Maintain per-request ACK count
+  spdlog::debug("run_command, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
 }
 
 void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
-  // TODO: Implement
+
+  spdlog::debug("replication_complete, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
+
+  std::vector<l2_operation> batch;
+  int idx = 0;
+  while(idx < args.size()) {
+    l2_operation op;
+    int count = op.deserialize(args, idx);
+    batch.push_back(op);
+    idx += count;
+  }
+
+  if(batch.size() != security_batch_size_) {
+    throw std::logic_error("Incorrectly sized security batch");
+  }
+  
+  if(l2_iface_ == nullptr) {
+    spdlog::error("replication_complete on non-tail node");
+    return;
+  }
+  // Forward requests in batch to L2
+    for (auto &op : batch) {
+      // TODO: Update l1_seq_no in op
+      l2_iface_->send_op(op);
+    }
 }
 
 void l1_proxy::put_batch(int queue_id, const std::vector<std::string> &keys,
@@ -231,16 +284,29 @@ void l1_proxy::async_put_batch(const sequence_id &seq_id, int queue_id,
 
 void l1_proxy::process_op(const l1_operation &op) {
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+  if(!is_head()) {
+    spdlog::error("Received direct request at non-head node");
+    return;
+  }
     // Generate batch
     internal_queue_.push(op);
     std::vector<l2_operation> batch;
     std::vector<bool> is_trues;
     create_security_batch(internal_queue_, batch, is_trues);
 
-    // Forward requests in batch to L2
-    for (auto &op : batch) {
-      l2_iface_->send_op(op);
-    }
+  // Replicate request
+  std::vector<std::string> args;
+  for(auto &op : batch) {
+    op.serialize(args);
+  }
+  sequence_id seq;
+  seq.client_id = -1;
+  seq.client_seq_no = -1;
+  seq.server_seq_no = -1;
+  chain_request(seq, args);
+
+  // To be continued in replication_complete callback at tail
+
 }
 
 void l1_proxy::flush() { throw std::logic_error("not implemented"); }

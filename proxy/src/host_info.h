@@ -31,6 +31,7 @@ public:
   bool get_host(const std::string &instance_name, host &out);
   bool get_base_idx(const std::string &instance_name, int &idx);
   void get_hosts_by_type(int type, std::vector<host> &hosts);
+  void get_replicas(int type, int column, std::vector<host> &replicas);
 
 private:
   std::vector<host> hosts_;

@@ -40,3 +40,28 @@ void l2proxy_interface::send_op(const l2_operation &op) {
     
     clients_[id]->l2request(op.seq_id, op.key, op.replica, op.value);
 }
+
+// <client_id, client_seq_no, key, replica, value>
+void l2_operation::serialize(std::vector<std::string> &args) {
+  args.push_back(std::to_string(seq_id.client_id));
+  args.push_back(std::to_string(seq_id.client_seq_no));
+  args.push_back(key);
+  args.push_back(std::to_string(replica));
+  args.push_back(value);
+}
+
+
+int l2_operation::deserialize(const std::vector<std::string> & args, int idx) {
+  if((int)args.size() - idx < 5) {
+    throw std::logic_error("l2_operation deserialize failed");
+  }
+
+  int start = idx;
+  seq_id.client_id = std::stoi(args[idx++]);
+  seq_id.client_seq_no = std::stoi(args[idx++]);
+  key = args[idx++];
+  replica = std::stoi(args[idx++]);
+  value = args[idx++];
+
+  return idx - start;
+}
