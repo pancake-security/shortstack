@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include "host_info.h"
 
@@ -133,6 +134,15 @@ void host_info::get_hosts_by_type(int type, std::vector<host> &hosts) {
           hosts.push_back(h);
       }  
     }
+}
+
+void host_info::get_replicas(int type, int column, std::vector<host> &replicas) {
+    for(auto &h : hosts_) {
+      if(h.type == type && h.column == column) {
+          replicas.push_back(h);
+      }  
+    }
+    std::sort(replicas.begin(), replicas.end(), [](host const & a, host const &b) {return a.row < b.row;});
 }
 
 bool host_info::get_base_idx(const std::string &instance_name, int &idx) {

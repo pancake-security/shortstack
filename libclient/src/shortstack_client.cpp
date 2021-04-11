@@ -10,7 +10,12 @@ void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts
   std::vector<std::string> l1_hostnames;
   std::vector<int> l1_ports;
   std::vector<int> l1_workers;
+  // Connect to L1 heads
   for (auto h : l1_hosts) {
+    if(h.row != 0) {
+        // TODO: Need to update these connection upon failure
+        continue;
+    }
     l1_hostnames.push_back(h.hostname);
     l1_ports.push_back(h.port);
     l1_workers.push_back(h.num_workers);
