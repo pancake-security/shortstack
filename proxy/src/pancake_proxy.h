@@ -56,6 +56,8 @@ public:
     std::future<std::string> put_future(int queue_id, const std::string &key, const std::string &value);
 
     void chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) override;
+    void setup_chain_stub(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id);
+    void resend_pending_stub(const int32_t block_id);
 
     void flush();
 

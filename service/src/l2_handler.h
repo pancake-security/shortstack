@@ -25,6 +25,10 @@ public:
 
   void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
 
+  void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id);
+    
+  void resend_pending(const int32_t block_id);
+
 private:
   std::shared_ptr<l2_proxy> proxy_;
 

@@ -20,3 +20,11 @@ void l2_handler::l2request(const sequence_id &seq_id, const std::string &key,
 void l2_handler::chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) {
     proxy_->chain_request(seq, arguments);
 }
+
+void l2_handler::setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
+    proxy_->setup(path, chain, (chain_role) role, next_block_id);
+}
+    
+void l2_handler::resend_pending(const int32_t block_id) {
+    proxy_->resend_pending();
+}

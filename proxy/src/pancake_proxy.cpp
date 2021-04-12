@@ -468,3 +468,11 @@ void pancake_proxy::close() {
 void pancake_proxy::chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) {
     throw std::logic_error("Not supported");
 }
+
+void pancake_proxy::setup_chain_stub(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
+  throw std::logic_error("Not supported");
+}
+
+void pancake_proxy::resend_pending_stub(const int32_t block_id) {
+  throw std::logic_error("Not supported");
+}

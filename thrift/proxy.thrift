@@ -7,6 +7,10 @@ struct sequence_id {
 service block_request_service {
   // Chain request (at non-head node)
   oneway void chain_request(1: sequence_id seq, 2: i32 block_id, 3: list<binary> arguments),
+
+  // Management
+  void setup_chain(1: i32 block_id, 2: string path, 6: list<string> chain, 7: i32 chain_role, 8: string next_block_id),
+  void resend_pending(1: i32 block_id),
 }
 
 service block_response_service {

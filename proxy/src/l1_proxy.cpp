@@ -325,3 +325,11 @@ void l1_proxy::close() {
 void l1_proxy::chain_req(const sequence_id& seq, const std::vector<std::string> & arguments) {
   chain_request(seq, arguments);
 }
+
+void l1_proxy::setup_chain_stub(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
+  setup(path, chain, (chain_role) role, next_block_id);
+}
+
+void l1_proxy::resend_pending_stub(const int32_t block_id) {
+  resend_pending();
+}
