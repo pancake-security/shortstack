@@ -16,6 +16,7 @@
 #include "distribution_info.h"
 //#include "thrift_response_client_map.h"
 #include "thrift_server.h"
+#include "l1_server.h"
 #include "l2_server.h"
 #include "l3_server.h"
 #include "initializer.h"
@@ -282,7 +283,7 @@ int l1_main(int argc, char *argv[]) {
     {
         proxys[i] = std::make_shared<l1_proxy>();
         proxys[i]->init_proxy(hinfo, instance_name, dinfo, i);
-        proxy_servers[i] = thrift_server::create(proxys[i], "l1", id_to_client, proxy_port + i, 1);
+        proxy_servers[i] = l1_server::create(proxys[i], "l1", id_to_client, proxy_port + i, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }
     

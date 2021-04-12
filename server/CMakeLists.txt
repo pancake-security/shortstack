@@ -34,6 +34,13 @@ add_executable(proxy_server
         ../service/src/proxy_types.h
         ../service/src/proxy_constants.cpp
         ../service/src/proxy_constants.h
+        
+        ../service/src/l1_handler_factory.h
+        ../service/src/l1_handler_factory.cpp
+        ../service/src/l1_handler.h
+        ../service/src/l1_handler.cpp
+        ../service/src/l1_server.h
+        ../service/src/l1_server.cpp
 
         ../service/src/l2proxy.h
         ../service/src/l2proxy.cpp

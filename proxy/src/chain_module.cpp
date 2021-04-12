@@ -67,6 +67,7 @@ void chain_module::resend_pending() {
 
 void chain_module::ack(const sequence_id &seq) {
   remove_pending(seq);
+  spdlog::debug("Ack, seq_no: {}, len(pending): {}", seq.server_seq_no, pending_.size());
   if (!is_head()) {
     if (prev_ == nullptr) {
       spdlog::error("Invalid state: Previous is null");
