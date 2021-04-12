@@ -74,6 +74,7 @@ void l1_handler::put_batch(const std::vector<std::string> & keys, const std::vec
 
 void l1_handler::chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) {
     if (!proxy_->is_set_prev()) {
+        // TODO: What if it is set, but the chain predecessor changed due to failure resolution
         proxy_->reset_prev(prot_);
     }
     proxy_->chain_request(seq, arguments);
