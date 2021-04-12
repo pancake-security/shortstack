@@ -97,6 +97,8 @@ add_executable(proxy_server
         ../proxy/src/MurmurHash2.h
         ../proxy/src/initializer.h
         ../proxy/src/initializer.cpp
+        ../proxy/src/proxy_manager.h
+        ../proxy/src/proxy_manager.cpp
 
         ../proxy/src/block_id_parser.h
         ../proxy/src/block_id_parser.cpp
