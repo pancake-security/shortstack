@@ -87,7 +87,9 @@ void chain_module::chain_request(sequence_id seq, const arg_list &args) {
   }
 
   if(seq.server_seq_no > chain_seq_no_ + 1) {
-      spdlog::error("Rceived out of order chain_request, server_seq_no: {}", seq.server_seq_no);
+      spdlog::error("Received out of order chain_request, server_seq_no: {}", seq.server_seq_no);
+      throw std::logic_error("Received out of order chain_request");
+      return;
   }
 
   run_command(seq, args);
