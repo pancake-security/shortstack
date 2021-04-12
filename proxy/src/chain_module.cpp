@@ -39,6 +39,9 @@ void chain_module::setup(const std::string &path,
       }
     });
   }
+  
+  setup_callback();
+  
 }
 
 // TODO: resend pending requests in sequence number order

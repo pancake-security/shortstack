@@ -316,6 +316,9 @@ class chain_module {
 // Callback after replications is complete (at tail)
 virtual void replication_complete(const sequence_id &seq, const arg_list &args) = 0;
 
+// Callback upon chain setup
+virtual void setup_callback() = 0;
+
 
   /**
    * @brief Request for the first time
@@ -352,6 +355,8 @@ virtual void replication_complete(const sequence_id &seq, const arg_list &args) 
   std::thread response_processor_;
   /* Pending operations */
   libcuckoo::cuckoohash_map<int64_t, chain_op> pending_;
+  /* Initialized bit */
+  bool initialized_{false};
 };
 
 

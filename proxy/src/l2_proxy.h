@@ -38,6 +38,7 @@ public:
 
   void run_command(const sequence_id &seq, const arg_list &args) override;
   void replication_complete(const sequence_id &seq, const arg_list &args) override;
+  void setup_callback() override;
 
 private:
   void consumer_thread(int id);
