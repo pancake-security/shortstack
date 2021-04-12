@@ -81,6 +81,8 @@ public:
 
   void replication_complete(const sequence_id &seq, const arg_list &args) override;
 
+  void setup_callback() override;
+
   void flush();
 
   std::string output_location_ = "log";
@@ -114,12 +116,14 @@ private:
 
   // Per-consumer thread state
   // std::vector<std::thread> threads_;
-  std::shared_ptr<l2proxy_interface> l2_iface_;
+  std::shared_ptr<l2proxy_interface> l2_iface_{nullptr};
   // std::vector<std::shared_ptr<queue<l1_operation>>> operation_queues_;
   std::queue<l1_operation> internal_queue_;
 
   const int64_t fake_client_id_ = -1995;
   int idx_;
+  std::shared_ptr<host_info> hosts_{nullptr};
+
 };
 
 #endif // L1_PROXY_H

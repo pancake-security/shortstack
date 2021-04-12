@@ -8,9 +8,17 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
                           int local_idx) {
+  hosts_ = hosts;
   instance_name_ = instance_name;
-  host this_host;
 
+  num_keys_ = dist_info->num_keys_;
+  dummy_key_ = dist_info->dummy_key_;
+  delta_ = 0.5;
+  key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;
+  fake_distribution_ = dist_info->fake_distribution_;
+  real_distribution_ = dist_info->real_distribution_;
+
+  host this_host;
   if (!hosts->get_host(instance_name, this_host)) {
     throw std::runtime_error("Unkown instance name: " + instance_name);
   }
@@ -44,32 +52,6 @@ void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   }
   setup("/", chain, role, next_block_id);
   spdlog::info("Worker {}: Chain module setup", idx_);
-
-  num_keys_ = dist_info->num_keys_;
-  dummy_key_ = dist_info->dummy_key_;
-  delta_ = 0.5;
-  key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;
-  fake_distribution_ = dist_info->fake_distribution_;
-  real_distribution_ = dist_info->real_distribution_;
-
-  if(is_tail()) {
-    std::vector<host> l2_hosts;
-    hosts->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
-
-    std::vector<std::string> l2_hostnames;
-    std::vector<int> l2_ports;
-    for (auto h : l2_hosts) {
-      l2_hostnames.push_back(h.hostname);
-      l2_ports.push_back(h.port);
-    }
-
-    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
-
-    // Connect to L2 servers
-    l2_iface_->connect();
-
-    spdlog::info("Worker {}: L2 interface connected", idx_);
-  }
 
   spdlog::info("Initialized L1 proxy");
 }
@@ -238,6 +220,28 @@ void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args
       l2_iface_->send_op(op);
     }
 }
+
+void l1_proxy::setup_callback() {
+  if(is_tail() && l2_iface_ == nullptr) {
+    std::vector<host> l2_hosts;
+    hosts_->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
+
+    std::vector<std::string> l2_hostnames;
+    std::vector<int> l2_ports;
+    for (auto h : l2_hosts) {
+      l2_hostnames.push_back(h.hostname);
+      l2_ports.push_back(h.port);
+    }
+
+    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
+
+    // Connect to L2 servers
+    l2_iface_->connect();
+
+    spdlog::info("Worker {}: L2 interface connected", idx_);
+  }
+}
+
 
 void l1_proxy::put_batch(int queue_id, const std::vector<std::string> &keys,
                          const std::vector<std::string> &values) {
