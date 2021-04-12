@@ -78,3 +78,11 @@ void thrift_handler::put_batch(const std::vector<std::string> & keys, const std:
 void thrift_handler::chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) {
     proxy_->chain_req(seq, arguments);
 }
+
+void thrift_handler::setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
+    proxy_->setup_chain_stub(block_id, path, chain, role, next_block_id);
+}
+    
+void thrift_handler::resend_pending(const int32_t block_id) {
+    proxy_->resend_pending_stub(block_id);
+}
