@@ -20,6 +20,7 @@
 #include "l3_server.h"
 #include "initializer.h"
 #include "thrift_utils.h"
+#include "proxy_manager.h"
 
 #define HOST "127.0.0.1"
 #define PROXY_PORT 9090
@@ -573,6 +574,43 @@ int dump_main(int argc, char *argv[]) {
     return 0;
 }
 
+void manager_usage() {
+    std::cout << "Shortstack proxy manager\n";
+
+    std::cout << "\t -h: Hosts file\n";
+    std::cout << "\t -f: Instance name to fail\n";
+}
+
+int manager_main(int argc, char *argv[]) {
+    std::string hosts_file;
+    std::string fail_node;
+    int o;
+    while ((o = getopt(argc, argv, "h:f:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'f':
+                fail_node = std::string(optarg);
+                break;
+            default:
+                manager_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosts file" << std::endl;
+        exit(-1);
+    }
+
+    auto manager = std::make_shared<proxy_manager>();
+    manager->init(hinfo);
+
+    manager->fail_node(fail_node);
+}
+
 void usage() {
     std::cout << "Usage: ./proxy_server <type> .....\n";
 }
@@ -596,6 +634,8 @@ int main(int argc, char *argv[]) {
         return init_main(argc - 1, argv + 1);
     } else if(strcmp(argv[1], "dump") == 0) {
         return dump_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "manager") == 0) {
+        return manager_main(argc - 1, argv + 1);
     } else {    
         std::cerr << "Unkown proxy type" << std::endl;
         exit(-1);

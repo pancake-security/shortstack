@@ -39,6 +39,8 @@ void chain_module::setup(const std::string &path,
       }
     });
   }
+
+  spdlog::info("chain_module setup, role: {}, next: {}", (int) role, next_block_id);
   
   setup_callback();
   
@@ -49,13 +51,18 @@ void chain_module::resend_pending() {
   auto ops = pending_.lock_table();
   try {
     for (const auto &op: ops) {
-      next_->request(op.second.seq, op.second.args);
+      if(is_tail()) {
+        replication_complete(op.second.seq, op.second.args);
+      } else {
+        next_->request(op.second.seq, op.second.args);
+      }
     }
   } catch (...) {
     ops.unlock();
     std::rethrow_exception(std::current_exception());
   }
   ops.unlock();
+  spdlog::info("Resent pending requests");
 }
 
 void chain_module::ack(const sequence_id &seq) {
