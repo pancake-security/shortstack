@@ -7,9 +7,10 @@ void l3_proxy::init_proxy(
     std::shared_ptr<host_info> hosts, std::string instance_name,
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
-    int num_cores, bool encryption_enabled, bool resp_delivery,
-    bool kv_interaction) {
+    bool encryption_enabled, bool resp_delivery,
+    bool kv_interaction, int local_idx) {
 
+  hosts_ = hosts;
   instance_name_ = instance_name;
   storage_batch_size_ = storage_batch_size;
   encryption_enabled_ = encryption_enabled;
@@ -18,23 +19,19 @@ void l3_proxy::init_proxy(
 
   id_to_client_ = client_map;
 
-  if (!hosts->get_hostname(instance_name, server_host_name_)) {
+  host this_host;
+  if (!hosts->get_host(instance_name, this_host)) {
     throw std::runtime_error("Unkown instance name: " + instance_name);
   }
 
-  if (!hosts->get_port(instance_name, server_port_)) {
-    throw std::runtime_error("Unkown instance name: " + instance_name);
-  }
+  int base_idx;
+  hosts->get_base_idx(instance_name_, base_idx);
+  idx_ = base_idx + local_idx;
 
   // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-  for (int i = 0; i < num_cores; i++) {
-    auto q = std::make_shared<queue<l3_operation>>();
-    operation_queues_.push_back(q);
-  }
-  for (int i = 0; i < num_cores; i++) {
-    auto q = std::make_shared<queue<crypto_operation>>();
-    crypto_queues_.push_back(q);
-  }
+
+  auto q = std::make_shared<queue<crypto_operation>>();
+  crypto_queue_ = q;
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
@@ -43,44 +40,34 @@ void l3_proxy::init_proxy(
   std::vector<host> kv_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
   if(kv_interaction_) {  
-    for (int i = 0; i < num_cores; i++) {
-      auto storage_iface =
+    
+      storage_iface_ =
           std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
       for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+        storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
-      storage_ifaces_.push_back(storage_iface);
-    }
+  
+      storage_iface2_ =
+          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+      for (int j = 1; j < kv_hosts.size(); j++) {
+        storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      }
 
-    for (int i = 0; i < num_cores; i++) {
-      auto storage_iface =
-          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
-      for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-      }
-      storage_ifaces2_.push_back(storage_iface);
-   }
+      spdlog::info("Worker {}: Storage interfaces connected", idx_);
+   
   } else {
-    for(int i = 0; i < num_cores; i++) {
-      auto storage_iface =
+      storage_iface_ =
           std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
-      storage_ifaces_.push_back(storage_iface);
-    }
-    for(int i = 0; i < num_cores; i++) {
-      auto storage_iface =
+    
+      storage_iface2_ =
           std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
-      storage_ifaces2_.push_back(storage_iface);
-    }
   }
 
   finished_.store(false);
-  for (int i = 0; i < num_cores; i++) {
-    threads_.push_back(std::thread(&l3_proxy::consumer_thread, this, i));
-  }
-  for (int i = 0; i < num_cores; i++) {
-    threads_.push_back(std::thread(&l3_proxy::crypto_thread, this, i,
+
+    threads_.push_back(std::thread(&l3_proxy::crypto_thread, this,
                                    new encryption_engine(encryption_engine_)));
-  }
+
   threads_.push_back(std::thread(&l3_proxy::responder_thread, this));
 }
 
@@ -88,56 +75,40 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
                                const std::string &label,
                                const std::string &value,
                                bool is_read) {
-  l3_operation operat;
-  operat.seq_id = seq_id;
-  operat.label = label;
-  operat.value = value;
-  operat.is_read = is_read;
+  l3_operation op;
+  op.seq_id = seq_id;
+  op.label = label;
+  op.value = value;
+  op.is_read = is_read;
 
-  auto id = (std::hash<std::string>{}(std::string(operat.label)) %
-             operation_queues_.size());
-  operation_queues_[id]->push(operat);
-}
+  auto storage_iface = storage_iface_;
+  auto crypto_queue = crypto_queue_;
+  spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
-void l3_proxy::consumer_thread(int id) {
-  // TODO: Handle exceptions
 
-  std::cerr << "Consumer " << id << " running" << std::endl;
-
-  auto storage_iface = storage_ifaces_[id];
-  auto crypto_queue = crypto_queues_[id];
-
-  while (true) {
-    auto op = operation_queues_[id]->pop(); // Blocking call
-    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-
-    if (finished_.load()) {
-      break;
-    }
-
-    // Send GET request to KV
-    // Execution will continue in crypto_thread
-    storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
-        spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-        // Enqueue task for crypto thread
-        crypto_operation crypto_op;
-        crypto_op.l3_op = op;
-        crypto_op.kv_response = resp_val;
-        crypto_queue->push(crypto_op);
-    });
-  }
+  // Send GET request to KV
+  // Execution will continue in crypto_thread
+  storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
+      spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+      // Enqueue task for crypto thread
+      crypto_operation crypto_op;
+      crypto_op.l3_op = op;
+      crypto_op.kv_response = resp_val;
+      crypto_queue->push(crypto_op);
+  });
 }
 
 
-void l3_proxy::crypto_thread(int id, encryption_engine *enc_engine) {
-  spdlog::info("Crypto worker {} started", id);
 
-  auto storage_iface = storage_ifaces2_[id];
+void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
+  spdlog::info("Worker {}: Crypto thread started", idx_);
+
+  auto storage_iface = storage_iface2_;
   auto fake_id = fake_client_id_;
   auto resp_queue = respond_queue_;
 
   while(true) {
-    auto crypto_op = crypto_queues_[id]->pop(); // Blocking call
+    auto crypto_op = crypto_queue_->pop(); // Blocking call
     spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
 
     if (finished_.load()) {
@@ -188,14 +159,7 @@ void l3_proxy::responder_thread(){
 void l3_proxy::close() {
   finished_.store(true);
   // push dummy ops into queues to unblock
-  l3_operation dummy;
-  dummy.seq_id.client_id = -1;
-  dummy.label = "$end$";
-  dummy.value = "";
-  dummy.is_read = true;
-  for(int i = 0; i < operation_queues_.size(); i++) {
-    operation_queues_[i]->push(dummy);
-  }
+
   for (int i = 0; i < threads_.size(); i++) {
     threads_[i].join();
   }

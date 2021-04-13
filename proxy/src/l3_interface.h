@@ -12,6 +12,7 @@
 
 #include "l3proxy.h"
 #include "proxy_types.h"
+#include "host_info.h"
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -27,20 +28,26 @@ struct l3_operation {
 class l3proxy_interface {
 
 public:
-  l3proxy_interface(std::vector<std::string> hosts, std::vector<int> ports);
+
+  typedef std::vector<std::shared_ptr<TSocket>> sock_list;
+  typedef std::vector<std::shared_ptr<TTransport>> transport_list;
+  typedef std::vector<std::shared_ptr<TProtocol>> prot_list;
+  typedef std::vector<std::shared_ptr<l3proxyClient>> client_list;
+
+  l3proxy_interface(std::shared_ptr<host_info> hinfo);
 
   void connect();
 
   void send_op(const l3_operation &op);
 
 private:
-  std::vector<std::string> hosts_;
-  std::vector<int> ports_;
 
-  std::vector<std::shared_ptr<TSocket>> sockets_;
-  std::vector<std::shared_ptr<TTransport>> transports_;
-  std::vector<std::shared_ptr<TProtocol>> protocols_;
-  std::vector<std::shared_ptr<l3proxyClient>> clients_;
+  std::shared_ptr<host_info> hosts_;
+
+  std::vector<sock_list> sockets_;
+  std::vector<transport_list> transports_;
+  std::vector<prot_list> protocols_;
+  std::vector<client_list> clients_;
 };
 
 #endif // L3_INTERFACE_H
