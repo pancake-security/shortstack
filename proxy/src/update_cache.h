@@ -16,6 +16,7 @@ public:
     int hamming_weight(const std::vector<bool> &bit_vec);
     int num_leading_zeros(const std::vector<bool> &bit_vec);
     std::string check_for_update(const std::string &key, int replica_id);
+    std::string check_for_update_immutable(const std::string &key, int replica_id);
     bool populate_replica_updates(const std::string &key, const std::string &val, int num_replicas);
     void edit_bit_vector_size(const std::string &key, int size);
     bool mirror_update_cache(const std::string &key, const std::string &value, const std::vector<bool> &bit_vec);

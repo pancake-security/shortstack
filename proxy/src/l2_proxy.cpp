@@ -27,24 +27,31 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   update_cache_ = update_cache;
 
-  std::vector<host> l3_hosts;
-  hosts->get_hosts_by_type(HOST_TYPE_L3, l3_hosts);
-
-  std::vector<std::string> l3_hostnames;
-  std::vector<int> l3_ports;
-  for (auto h : l3_hosts) {
-    l3_hostnames.push_back(h.hostname);
-    l3_ports.push_back(h.port);
+  // Setup chain_module
+  std::vector<host> replicas;
+  hosts->get_replicas(HOST_TYPE_L2, this_host.column, replicas);
+  chain_role role;
+  if(replicas.size() == 1) {
+    role = chain_role::singleton;
+  } else if (replicas.front().instance_name == this_host.instance_name) {
+    role = chain_role::head;
+  } else if (replicas.back().instance_name == this_host.instance_name) {
+    role = chain_role::tail;
+  } else {
+    role = chain_role::mid;
   }
-
-  // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-  
-  l3_iface_ =  std::make_shared<l3proxy_interface>(l3_hostnames, l3_ports);
-
-  // Connect to L2 servers
-  l3_iface_->connect();
-
-  spdlog::info("Worker {}: L3 interface connected", idx_);
+  std::vector<std::string> chain;
+  std::string next_block_id = "nil";
+  int next_row = this_host.row + 1;
+  for(auto &h : replicas) {
+    auto bid = block_id_parser::make(h.hostname, h.port + local_idx, h.port + local_idx, local_idx);
+    chain.push_back(bid);
+    if(h.row == next_row) {
+      next_block_id = bid;
+    }
+  }
+  setup("/", chain, role, next_block_id);
+  spdlog::info("Worker {}: Chain module setup", idx_);
 
   spdlog::info("Initialized L2 proxy");
 }
@@ -60,6 +67,12 @@ void l2_proxy::async_operation(const sequence_id &seq_id,
 
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
+  if(!is_head()) {
+    spdlog::error("Received direct request at non-head node");
+    throw std::runtime_error("Received direct request at non-head node");
+    return;
+  }
+
   if (key_to_number_of_replicas_.find(op.key) ==
       key_to_number_of_replicas_.end()) {
         spdlog::error("Key not found in key_to_number_of_replicas_: {}", op.key);
@@ -67,35 +80,12 @@ void l2_proxy::async_operation(const sequence_id &seq_id,
         return;
   }
 
-  if (update_cache_enabled_ && op.value != "") {
-    update_cache_->populate_replica_updates(
-        op.key, op.value, key_to_number_of_replicas_[op.key]);
-  }
-  // TODO: Currently check_for_update also clears the status bit. This can lead to inconsistency. The bit should be cleared only after PUT to KV is complete.
-  std::string plaintext_update;
-  if(update_cache_enabled_) {
-    plaintext_update = update_cache_->check_for_update(op.key, op.replica);
-  } else {
-    plaintext_update = op.value;
-  }
-  
-  spdlog::debug("plaintext_update={}..., client_id:{}, seq_no:{}", plaintext_update.substr(0,5), op.seq_id.client_id, op.seq_id.client_seq_no);
+  // Replicate request
+  std::vector<std::string> args;
+  op.serialize(args);
+  chain_request(op.seq_id, args);
 
-  auto it = replica_to_label_.find(op.key + std::to_string(op.replica));
-  if (it == replica_to_label_.end()) {
-    spdlog::error("Replica not found in label map: {}, {}", op.key, op.replica);
-    throw std::runtime_error("Replica not found in label map");
-    return;
-  }
-  auto label = std::to_string(it->second);
-
-  // Send to L3
-  l3_operation l3_op;
-  l3_op.seq_id = op.seq_id;
-  l3_op.label = label;
-  l3_op.value = plaintext_update;
-  l3_op.is_read = op.value == "";
-  l3_iface_->send_op(l3_op);
+  // Execution to be continued in replication_complete() callback at tail
 }
 
 void l2_proxy::close() {
@@ -115,13 +105,80 @@ void l2_proxy::close() {
 }
 
 void l2_proxy::run_command(const sequence_id &seq, const arg_list &args) {
-  // TODO: Implement
+  
+  spdlog::debug("run_command, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
+
+  l2_operation op;
+  op.deserialize(args, 0);
+  op.seq_id = seq;
+
+  if (update_cache_enabled_ && op.value != "") {
+    update_cache_->populate_replica_updates(
+        op.key, op.value, key_to_number_of_replicas_[op.key]);
+  }
+  
 }
 
 void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
-  // TODO: Implement
+  
+  spdlog::debug("replication_complete, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
+
+  l2_operation op;
+  op.deserialize(args, 0);
+  op.seq_id = seq;
+
+  std::string plaintext_update;
+  if(update_cache_enabled_) {
+    plaintext_update = update_cache_->check_for_update_immutable(op.key, op.replica);
+  } else {
+    plaintext_update = op.value;
+  }
+  
+  spdlog::debug("plaintext_update={}..., client_id:{}, seq_no:{}", plaintext_update.substr(0,5), op.seq_id.client_id, op.seq_id.client_seq_no);
+
+  auto it = replica_to_label_.find(op.key + std::to_string(op.replica));
+  if (it == replica_to_label_.end()) {
+    spdlog::error("Replica not found in label map: {}, {}", op.key, op.replica);
+    throw std::runtime_error("Replica not found in label map");
+    return;
+  }
+  auto label = std::to_string(it->second);
+
+  if(l3_iface_ == nullptr) {
+    spdlog::error("replication_complete on non-tail node");
+    return;
+  }
+
+  // Send to L3
+  l3_operation l3_op;
+  l3_op.seq_id = op.seq_id;
+  l3_op.label = label;
+  l3_op.value = plaintext_update;
+  l3_op.is_read = op.value == "";
+  l3_iface_->send_op(l3_op);
 }
 
 void l2_proxy::setup_callback() {
-  // TODO: Implement
+
+  if(is_tail() && l3_iface_ == nullptr) {
+    std::vector<host> l3_hosts;
+    hosts_->get_hosts_by_type(HOST_TYPE_L3, l3_hosts);
+
+    std::vector<std::string> l3_hostnames;
+    std::vector<int> l3_ports;
+    for (auto h : l3_hosts) {
+      l3_hostnames.push_back(h.hostname);
+      l3_ports.push_back(h.port);
+    }
+
+    // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    
+    l3_iface_ =  std::make_shared<l3proxy_interface>(l3_hostnames, l3_ports);
+
+    // Connect to L2 servers
+    l3_iface_->connect();
+
+    spdlog::info("Worker {}: L3 interface connected", idx_);
+  }
+  
 }

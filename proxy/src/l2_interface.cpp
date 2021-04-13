@@ -12,6 +12,12 @@ l2proxy_interface::l2proxy_interface(std::vector<host> hosts,
 
 void l2proxy_interface::connect() {
     for (int i = 0; i < hosts_.size(); i++) {
+
+      if(hosts_[i].row != 0) {
+        // TODO: Need to update these connection upon failure
+        continue;
+      }
+
       sock_list sockets;
       transport_list transports;
       prot_list protocols;
