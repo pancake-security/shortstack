@@ -171,9 +171,12 @@ void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args
   // Send to L3
   l3_operation l3_op;
   l3_op.seq_id = op.seq_id;
+  l3_op.seq_id.l2_idx = idx_;
+  l3_op.seq_id.l2_seq_no = seq.server_seq_no;
   l3_op.label = label;
   l3_op.value = plaintext_update;
   l3_op.is_read = op.value == "";
+  l3_op.dedup = true;
   l3_iface_->send_op(l3_op);
 }
 

@@ -37,6 +37,14 @@ void sequence_id::__set_l1_idx(const int32_t val) {
 void sequence_id::__set_l1_seq_no(const int64_t val) {
   this->l1_seq_no = val;
 }
+
+void sequence_id::__set_l2_idx(const int32_t val) {
+  this->l2_idx = val;
+}
+
+void sequence_id::__set_l2_seq_no(const int64_t val) {
+  this->l2_seq_no = val;
+}
 std::ostream& operator<<(std::ostream& out, const sequence_id& obj)
 {
   obj.printTo(out);
@@ -61,6 +69,8 @@ uint32_t sequence_id::read(::apache::thrift::protocol::TProtocol* iprot) {
   bool isset_server_seq_no = false;
   bool isset_l1_idx = false;
   bool isset_l1_seq_no = false;
+  bool isset_l2_idx = false;
+  bool isset_l2_seq_no = false;
 
   while (true)
   {
@@ -110,6 +120,22 @@ uint32_t sequence_id::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 6:
+        if (ftype == ::apache::thrift::protocol::T_I32) {
+          xfer += iprot->readI32(this->l2_idx);
+          isset_l2_idx = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 7:
+        if (ftype == ::apache::thrift::protocol::T_I64) {
+          xfer += iprot->readI64(this->l2_seq_no);
+          isset_l2_seq_no = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -128,6 +154,10 @@ uint32_t sequence_id::read(::apache::thrift::protocol::TProtocol* iprot) {
   if (!isset_l1_idx)
     throw TProtocolException(TProtocolException::INVALID_DATA);
   if (!isset_l1_seq_no)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  if (!isset_l2_idx)
+    throw TProtocolException(TProtocolException::INVALID_DATA);
+  if (!isset_l2_seq_no)
     throw TProtocolException(TProtocolException::INVALID_DATA);
   return xfer;
 }
@@ -157,6 +187,14 @@ uint32_t sequence_id::write(::apache::thrift::protocol::TProtocol* oprot) const 
   xfer += oprot->writeI64(this->l1_seq_no);
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("l2_idx", ::apache::thrift::protocol::T_I32, 6);
+  xfer += oprot->writeI32(this->l2_idx);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("l2_seq_no", ::apache::thrift::protocol::T_I64, 7);
+  xfer += oprot->writeI64(this->l2_seq_no);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -169,6 +207,8 @@ void swap(sequence_id &a, sequence_id &b) {
   swap(a.server_seq_no, b.server_seq_no);
   swap(a.l1_idx, b.l1_idx);
   swap(a.l1_seq_no, b.l1_seq_no);
+  swap(a.l2_idx, b.l2_idx);
+  swap(a.l2_seq_no, b.l2_seq_no);
 }
 
 sequence_id::sequence_id(const sequence_id& other0) {
@@ -177,6 +217,8 @@ sequence_id::sequence_id(const sequence_id& other0) {
   server_seq_no = other0.server_seq_no;
   l1_idx = other0.l1_idx;
   l1_seq_no = other0.l1_seq_no;
+  l2_idx = other0.l2_idx;
+  l2_seq_no = other0.l2_seq_no;
 }
 sequence_id& sequence_id::operator=(const sequence_id& other1) {
   client_id = other1.client_id;
@@ -184,6 +226,8 @@ sequence_id& sequence_id::operator=(const sequence_id& other1) {
   server_seq_no = other1.server_seq_no;
   l1_idx = other1.l1_idx;
   l1_seq_no = other1.l1_seq_no;
+  l2_idx = other1.l2_idx;
+  l2_seq_no = other1.l2_seq_no;
   return *this;
 }
 void sequence_id::printTo(std::ostream& out) const {
@@ -194,6 +238,8 @@ void sequence_id::printTo(std::ostream& out) const {
   out << ", " << "server_seq_no=" << to_string(server_seq_no);
   out << ", " << "l1_idx=" << to_string(l1_idx);
   out << ", " << "l1_seq_no=" << to_string(l1_seq_no);
+  out << ", " << "l2_idx=" << to_string(l2_idx);
+  out << ", " << "l2_seq_no=" << to_string(l2_seq_no);
   out << ")";
 }
 

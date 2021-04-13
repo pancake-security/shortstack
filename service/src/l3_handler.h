@@ -28,7 +28,7 @@ public:
 
   void register_client_id(const int64_t client_id);
 
-  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read);
+  void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read, const bool dedup);
 
 private:
   std::shared_ptr<l3_proxy> proxy_;
