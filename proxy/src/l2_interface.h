@@ -11,6 +11,7 @@
 #include <thrift/transport/TTransportUtils.h>
 
 #include "proxy_types.h"
+#include "host_info.h"
 #include "l2proxy.h"
 
 using namespace apache::thrift;
@@ -30,20 +31,26 @@ struct l2_operation {
 class l2proxy_interface {
 
 public:
-  l2proxy_interface(std::vector<std::string> hosts, std::vector<int> ports, std::string dummy_key);
+
+  typedef std::vector<std::shared_ptr<TSocket>> sock_list;
+  typedef std::vector<std::shared_ptr<TTransport>> transport_list;
+  typedef std::vector<std::shared_ptr<TProtocol>> prot_list;
+  typedef std::vector<std::shared_ptr<l2proxyClient>> client_list;
+
+
+  l2proxy_interface(std::vector<host> hosts, std::string dummy_key);
 
   void connect();
 
   void send_op(const l2_operation &op);
 
 private:
-  std::vector<std::string> hosts_;
-  std::vector<int> ports_;
+  std::vector<host> hosts_;
 
-  std::vector<std::shared_ptr<TSocket>> sockets_;
-  std::vector<std::shared_ptr<TTransport>> transports_;
-  std::vector<std::shared_ptr<TProtocol>> protocols_;
-  std::vector<std::shared_ptr<l2proxyClient>> clients_;
+  std::vector<sock_list> sockets_;
+  std::vector<transport_list> transports_;
+  std::vector<prot_list> protocols_;
+  std::vector<client_list> clients_;
 
   std::string dummy_key_;
   

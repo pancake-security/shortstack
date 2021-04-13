@@ -22,6 +22,7 @@
 #include "initializer.h"
 #include "thrift_utils.h"
 #include "proxy_manager.h"
+#include "update_cache.h"
 
 #define HOST "127.0.0.1"
 #define PROXY_PORT 9090
@@ -348,26 +349,39 @@ int l2_main(int argc, char *argv[]) {
 
     std::string proxy_host;
     int proxy_port;
-    if(!hinfo->get_hostname(instance_name, proxy_host)) {
-        std::cerr << "Invalid instance name" << std::endl;
-        exit(-1);
-    }
-    if(!hinfo->get_port(instance_name, proxy_port)) {
+    int num_workers;
+    host this_host;
+    if(!hinfo->get_host(instance_name, this_host)) {
         std::cerr << "Invalid instance name" << std::endl;
         exit(-1);
     }
 
+    proxy_host = this_host.hostname;
+    proxy_port = this_host.port;
+    num_workers = this_host.num_workers;
 
     auto dinfo = std::make_shared<distribution_info>();
     // TODO: exception handling
     dinfo->load(dist_file);
 
-    std::shared_ptr<l2_proxy> proxy = std::make_shared<l2_proxy>();
-    proxy->init_proxy(hinfo, instance_name, dinfo, num_cores, uc_enabled);
+    std::vector<std::thread> proxy_serve_threads(num_workers);
+    std::vector<std::shared_ptr<TServer>> proxy_servers(num_workers);
+    std::vector<std::shared_ptr<l2_proxy>> proxys(num_workers);
 
-    auto proxy_server = l2_server::create(proxy, proxy_port, num_cores, num_cores);
-    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
-    wait_for_server_start(proxy_host, proxy_port);
+    auto cache = std::make_shared<update_cache>();
+
+    for(int i = 0; i < num_workers; i++) 
+    {
+        proxys[i] = std::make_shared<l2_proxy>();
+        proxys[i]->init_proxy(hinfo, instance_name, dinfo, cache, uc_enabled, i);
+        proxy_servers[i] = l2_server::create(proxys[i], proxy_port + i, 1, 1);
+        proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
+    }
+    
+    for(int i = 0; i < num_workers; i++) {
+        wait_for_server_start(proxy_host, proxy_port + i);
+    }
+
     std::cout << "Proxy server is reachable" << std::endl;
     sleep(10000);
 
