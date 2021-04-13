@@ -47,8 +47,8 @@ public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   int kvclient_threads, int storage_batch_size,
                   std::shared_ptr<thrift_response_client_map> client_map,
-                  int num_cores, bool encryption_enabled, bool resp_delivery,
-                  bool kv_interaction);
+                  bool encryption_enabled, bool resp_delivery,
+                  bool kv_interaction, int local_idx);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read);
@@ -56,8 +56,8 @@ public:
   void close();
 
 private:
-  void consumer_thread(int id);
-  void crypto_thread(int id, encryption_engine *enc_engine);
+  // void consumer_thread(int id);
+  void crypto_thread(encryption_engine *enc_engine);
   void responder_thread();
 
   // void execute_batch(const std::vector<l3_operation> &operations,
@@ -65,8 +65,8 @@ private:
   //                    encryption_engine *enc_engine);
 
   std::string instance_name_;
-  std::string server_host_name_;
-  int server_port_;
+  // std::string server_host_name_;
+  // int server_port_;
 
   // Base encryption engine
   // WARNING: Not thread-safe
@@ -77,12 +77,12 @@ private:
   std::vector<std::thread> threads_;
 
   // Per-consumer thread state
-  std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
-  std::vector<std::shared_ptr<storage_interface>> storage_ifaces_;
+  // std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
+  std::shared_ptr<storage_interface> storage_iface_;
 
   // Per-crypto thread state
-  std::vector<std::shared_ptr<queue<crypto_operation>>> crypto_queues_;
-  std::vector<std::shared_ptr<storage_interface>> storage_ifaces2_;
+  std::shared_ptr<queue<crypto_operation>> crypto_queue_;
+  std::shared_ptr<storage_interface> storage_iface2_;
 
   std::shared_ptr<thrift_response_client_map> id_to_client_;
   std::shared_ptr<queue<client_response>> respond_queue_;
@@ -93,6 +93,9 @@ private:
   bool encryption_enabled_ = true;
   bool resp_delivery_ = true;
   bool kv_interaction_ = true;
+
+  int idx_;
+  std::shared_ptr<host_info> hosts_{nullptr};
 };
 
 #endif // L3_PROXY_H

@@ -45,24 +45,29 @@ void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts
 
   std::vector<std::string> l3_hostnames;
   std::vector<int> l3_ports;
+  std::vector<int> l3_workers;
   for (auto h : l3_hosts) {
     l3_hostnames.push_back(h.hostname);
     l3_ports.push_back(h.port);
+    l3_workers.push_back(h.num_workers);
   }
 
   for (int i = 0; i < l3_hostnames.size(); i++) {
-    auto socket = std::make_shared<TSocket>(l3_hostnames[i], l3_ports[i]);
-    socket->setRecvTimeout(10000);
-    socket->setSendTimeout(1200000);
-    auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-    auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-    auto client = std::make_shared<l3proxyClient>(protocol);
-    transport->open();
+    for(int j = 0; j < l3_workers[i]; j++)
+     {
+        auto socket = std::make_shared<TSocket>(l3_hostnames[i], l3_ports[i]);
+        socket->setRecvTimeout(10000);
+        socket->setSendTimeout(1200000);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<l3proxyClient>(protocol);
+        transport->open();
 
-    l3_sockets_.push_back(socket);
-    l3_transports_.push_back(transport);
-    l3_protocols_.push_back(protocol);
-    l3_clients_.push_back(client);
+        l3_sockets_.push_back(socket);
+        l3_transports_.push_back(transport);
+        l3_protocols_.push_back(protocol);
+        l3_clients_.push_back(client);
+     }
 
     // Register with all L3 servers
     for(int i = 0; i < l3_clients_.size(); i++) {

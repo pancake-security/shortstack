@@ -192,9 +192,9 @@ void l2_proxy::setup_callback() {
 
     // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
     
-    l3_iface_ =  std::make_shared<l3proxy_interface>(l3_hostnames, l3_ports);
+    l3_iface_ =  std::make_shared<l3proxy_interface>(hosts_);
 
-    // Connect to L2 servers
+    // Connect to L3 servers
     l3_iface_->connect();
 
     spdlog::info("Worker {}: L3 interface connected", idx_);

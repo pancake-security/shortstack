@@ -447,28 +447,41 @@ int l3_main(int argc, char *argv[]) {
 
     std::string proxy_host;
     int proxy_port;
-    if(!hinfo->get_hostname(instance_name, proxy_host)) {
-        std::cerr << "Invalid instance name" << std::endl;
-        exit(-1);
-    }
-    if(!hinfo->get_port(instance_name, proxy_port)) {
+    int num_workers;
+    host this_host;
+    if(!hinfo->get_host(instance_name, this_host)) {
         std::cerr << "Invalid instance name" << std::endl;
         exit(-1);
     }
 
+    proxy_host = this_host.hostname;
+    proxy_port = this_host.port;
+    num_workers = this_host.num_workers;
 
     // auto dinfo = std::make_shared<distribution_info>();
     // // TODO: exception handling
     // dinfo->load(dist_file);
 
-    auto id_to_client = std::make_shared<thrift_response_client_map>();
+    std::vector<std::thread> proxy_serve_threads(num_workers);
+    std::vector<std::shared_ptr<TServer>> proxy_servers(num_workers);
+    std::vector<std::shared_ptr<l3_proxy>> proxys(num_workers);
+    std::vector<std::shared_ptr<thrift_response_client_map>> id_to_clients(num_workers);
 
-    std::shared_ptr<l3_proxy> proxy = std::make_shared<l3_proxy>();
-    proxy->init_proxy(hinfo, instance_name, num_cores, storage_batch_size, id_to_client, num_cores, encryption, resp_delivery, kv_interaction);
     
-    auto proxy_server = l3_server::create(proxy, id_to_client, proxy_port, num_cores, num_cores);
-    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
-    wait_for_server_start(proxy_host, proxy_port);
+
+    for(int i = 0; i < num_workers; i++) 
+    {
+        id_to_clients[i] = std::make_shared<thrift_response_client_map>();
+        proxys[i] = std::make_shared<l3_proxy>();
+        proxys[i]->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_clients[i], encryption, resp_delivery, kv_interaction, i);
+        proxy_servers[i] = l3_server::create(proxys[i], id_to_clients[i], proxy_port + i, 1, 1);
+        proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
+    }
+    
+    for(int i = 0; i < num_workers; i++) {
+        wait_for_server_start(proxy_host, proxy_port + i);
+    }
+
     std::cout << "Proxy server is reachable" << std::endl;
     sleep(10000);
 
