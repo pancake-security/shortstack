@@ -85,6 +85,8 @@ public:
 
   void setup_callback() override;
 
+  void update_connections(int type, int column, std::string hostname, int port, int num_workers);
+
   void flush();
 
   std::string output_location_ = "log";

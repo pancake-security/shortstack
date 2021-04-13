@@ -41,6 +41,8 @@ public:
   void replication_complete(const sequence_id &seq, const arg_list &args) override;
   void setup_callback() override;
 
+  void update_connections(int type, int column, std::string hostname, int port, int num_workers);
+
 private:
   // void consumer_thread(int id);
 
