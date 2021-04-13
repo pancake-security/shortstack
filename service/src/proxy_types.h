@@ -28,19 +28,25 @@ class sequence_id : public virtual ::apache::thrift::TBase {
 
   sequence_id(const sequence_id&);
   sequence_id& operator=(const sequence_id&);
-  sequence_id() : client_id(0), client_seq_no(0), server_seq_no(0) {
+  sequence_id() : client_id(0), client_seq_no(0), server_seq_no(0), l1_idx(0), l1_seq_no(0) {
   }
 
   virtual ~sequence_id() throw();
   int64_t client_id;
   int64_t client_seq_no;
   int64_t server_seq_no;
+  int32_t l1_idx;
+  int64_t l1_seq_no;
 
   void __set_client_id(const int64_t val);
 
   void __set_client_seq_no(const int64_t val);
 
   void __set_server_seq_no(const int64_t val);
+
+  void __set_l1_idx(const int32_t val);
+
+  void __set_l1_seq_no(const int64_t val);
 
   bool operator == (const sequence_id & rhs) const
   {
@@ -49,6 +55,10 @@ class sequence_id : public virtual ::apache::thrift::TBase {
     if (!(client_seq_no == rhs.client_seq_no))
       return false;
     if (!(server_seq_no == rhs.server_seq_no))
+      return false;
+    if (!(l1_idx == rhs.l1_idx))
+      return false;
+    if (!(l1_seq_no == rhs.l1_seq_no))
       return false;
     return true;
   }

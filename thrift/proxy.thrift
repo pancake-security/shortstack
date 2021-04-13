@@ -2,6 +2,8 @@ struct sequence_id {
   1: required i64 client_id,
   2: required i64 client_seq_no,
   3: required i64 server_seq_no,
+  4: required i32 l1_idx,
+  5: required i64 l1_seq_no,
 }
 
 service block_request_service {

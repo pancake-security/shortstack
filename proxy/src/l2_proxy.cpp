@@ -27,6 +27,11 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   update_cache_ = update_cache;
 
+  int num_l1_cols = hosts->get_num_columns(HOST_TYPE_L1, true);
+  for(int i = 0; i < num_l1_cols; i++) {
+    last_seen_seq_.push_back(-1);
+  }
+
   // Setup chain_module
   std::vector<host> replicas;
   hosts->get_replicas(HOST_TYPE_L2, this_host.column, replicas);
@@ -66,6 +71,11 @@ void l2_proxy::async_operation(const sequence_id &seq_id,
   op.value = value;
 
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+
+  if(op.seq_id.l1_seq_no <= last_seen_seq_[op.seq_id.l1_idx]) {
+    spdlog::info("Received duplicate L1 request, l1_idx: {}, l1_seq_no: {}", op.seq_id.l1_idx, op.seq_id.l1_seq_no);
+    return;
+  }
 
   if(!is_head()) {
     spdlog::error("Received direct request at non-head node");
@@ -107,6 +117,15 @@ void l2_proxy::close() {
 void l2_proxy::run_command(const sequence_id &seq, const arg_list &args) {
   
   spdlog::debug("run_command, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
+
+  // Update per-L1 sequence number
+  if(seq.l1_seq_no <= last_seen_seq_[seq.l1_idx]) {
+    spdlog::error("chain command with out-of-order sequency number, l1_seq_no: {}, l1_idx: {}, last_seen: {}", seq.l1_seq_no, seq.l1_idx, last_seen_seq_[seq.l1_idx]);
+    throw std::runtime_error("chain command with out-of-order sequency number");
+    return;
+  }
+
+  last_seen_seq_[seq.l1_idx] = seq.l1_seq_no;
 
   l2_operation op;
   op.deserialize(args, 0);
