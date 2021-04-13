@@ -51,7 +51,7 @@ public:
                   bool kv_interaction, int local_idx);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
-                       const std::string &value, bool is_read);
+                       const std::string &value, bool is_read, bool dedup);
 
   void close();
 
@@ -96,6 +96,9 @@ private:
 
   int idx_;
   std::shared_ptr<host_info> hosts_{nullptr};
+
+  // Per-L2 sequence numbers
+  std::vector<int64_t> last_seen_seq_;
 };
 
 #endif // L3_PROXY_H

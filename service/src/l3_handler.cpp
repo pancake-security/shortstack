@@ -21,6 +21,7 @@ void l3_handler::register_client_id(const int64_t client_id) {
 }
 
 void l3_handler::l3request(const sequence_id &seq_id, const std::string &label,
-                           const std::string &value, const bool is_read) {
-  proxy_->async_operation(seq_id, label, value, is_read);
+                           const std::string &value, const bool is_read,
+                           const bool dedup) {
+  proxy_->async_operation(seq_id, label, value, is_read, dedup);
 }

@@ -28,6 +28,11 @@ void l3_proxy::init_proxy(
   hosts->get_base_idx(instance_name_, base_idx);
   idx_ = base_idx + local_idx;
 
+  int num_l2_cols = hosts->get_num_columns(HOST_TYPE_L2, true);
+  for(int i = 0; i < num_l2_cols; i++) {
+    last_seen_seq_.push_back(-1);
+  }
+
   // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
   auto q = std::make_shared<queue<crypto_operation>>();
@@ -74,12 +79,21 @@ void l3_proxy::init_proxy(
 void l3_proxy::async_operation(const sequence_id &seq_id,
                                const std::string &label,
                                const std::string &value,
-                               bool is_read) {
+                               bool is_read,
+                               bool dedup) {
   l3_operation op;
   op.seq_id = seq_id;
   op.label = label;
   op.value = value;
   op.is_read = is_read;
+  op.dedup = dedup;
+
+  if(op.dedup && op.seq_id.l2_seq_no <= last_seen_seq_[op.seq_id.l2_idx]) {
+    spdlog::info("Received duplicate L2 request, l2_idx: {}, l2_seq_no: {}", op.seq_id.l2_idx, op.seq_id.l2_seq_no);
+    return;
+  }
+
+  last_seen_seq_[op.seq_id.l2_idx] = std::max(last_seen_seq_[op.seq_id.l2_idx], op.seq_id.l2_seq_no);
 
   auto storage_iface = storage_iface_;
   auto crypto_queue = crypto_queue_;

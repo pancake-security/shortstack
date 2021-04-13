@@ -53,5 +53,5 @@ void l3proxy_interface::send_op(const l3_operation &op) {
   // Pick worker within L3 based on hash of label
   int wid;
   wid = MurmurHash64A(op.label.data(), op.label.length(), 1995) % clients_[id].size();
-  clients_[id][wid]->l3request(op.seq_id, op.label, op.value, op.is_read);
+  clients_[id][wid]->l3request(op.seq_id, op.label, op.value, op.is_read, op.dedup);
 }

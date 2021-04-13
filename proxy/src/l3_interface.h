@@ -23,6 +23,7 @@ struct l3_operation {
   std::string label;
   std::string value;
   bool is_read;
+  bool dedup;
 };
 
 class l3proxy_interface {
