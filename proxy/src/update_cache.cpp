@@ -29,6 +29,19 @@
         return to_send;
     };
 
+    std::string update_cache::check_for_update_immutable(const std::string &key, int replica_id) {
+        std::string to_send = "";
+        auto find_fn = [&](std::pair<std::string, std::vector<bool>> &cache_entry){
+            auto &bit_vec = cache_entry.second;
+            if (bit_vec[replica_id])
+            {
+                to_send = cache_entry.first;
+            }
+        };
+        map.find_fn(key, find_fn);
+        return to_send;
+    }
+
     void update_cache::edit_bit_vector_size(const std::string &key, int size) {
         if (map.contains(key))  {
             auto update_fn = [&](std::pair<std::string, std::vector<bool>> &cache_entry) {
