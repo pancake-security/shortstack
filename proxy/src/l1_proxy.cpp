@@ -225,16 +225,32 @@ void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args
 
 void l1_proxy::setup_callback() {
   if(is_tail() && l2_iface_ == nullptr) {
-    std::vector<host> l2_hosts;
-    hosts_->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
 
-    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hosts, dummy_key_);
+    l2_iface_ = std::make_shared<l2proxy_interface>(hosts_, dummy_key_);
 
     // Connect to L2 servers
     l2_iface_->connect();
 
     spdlog::info("Worker {}: L2 interface connected", idx_);
   }
+}
+
+void l1_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
+  
+  if(type != HOST_TYPE_L2) {
+    spdlog::error("Invalid update_connections call");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  if(!is_tail() || l2_iface_ == nullptr) {
+    spdlog::error("update_connections called on non-tail L1 node");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  l2_iface_->update_connections(column, hostname, port, num_workers);
+
 }
 
 

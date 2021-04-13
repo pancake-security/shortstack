@@ -201,3 +201,8 @@ void l2_proxy::setup_callback() {
   }
   
 }
+
+void l2_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
+  // TODO: Implement
+  throw std::logic_error("Not implemented");
+}

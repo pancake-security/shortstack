@@ -42,6 +42,58 @@ void proxy_manager::fail_node(std::string instance_name) {
             resend_pending(&prev);
         }
 
+    } else if(failed_host.type == HOST_TYPE_L2) {
+        std::vector<host> replicas;
+        hosts_->get_replicas(HOST_TYPE_L2, failed_host.column, replicas);
+              
+        std::vector<host> fixed_replicas;
+        std::copy_if(replicas.begin(), replicas.end(), std::back_inserter(fixed_replicas), [&failed_host](const host &elem){ return elem.instance_name != failed_host.instance_name;});
+
+        int idx = get_idx(failed_host, replicas);
+        assert(idx != -1);
+        if(idx > 0) {
+            host prev = replicas[idx - 1];
+            int prev_idx = get_idx(prev, fixed_replicas);
+
+            chain_role role;
+            if(fixed_replicas.size() == 1) {
+                role = chain_role::singleton;
+            } else {
+                role = (prev_idx == 0) ? chain_role::head : (prev_idx == fixed_replicas.size() - 1) ? chain_role::tail : chain_role::mid;
+            }
+
+            host *next_replica = (prev_idx == fixed_replicas.size() - 1) ? nullptr : &fixed_replicas[prev_idx + 1];
+            spdlog::info("setup chain on {}", prev.instance_name);
+            setup_chain(&prev, "/", role, next_replica);
+            spdlog::info("resend pending on {}", prev.instance_name);
+            resend_pending(&prev);
+        } else {
+            // Head failure
+            assert(fixed_replicas.size() >= 1);
+            host new_head = fixed_replicas[0];
+            chain_role role = (fixed_replicas.size() == 1)?(chain_role::singleton):(chain_role::head);
+            host *next_replica = (fixed_replicas.size() == 1) ? nullptr : &fixed_replicas[1];
+            spdlog::info("setup chain on {}", new_head.instance_name);
+            setup_chain(&new_head, "/", role, next_replica);
+            
+            // Update connections & resend pending at L1 tails
+            int num_cols = hosts_->get_num_columns(HOST_TYPE_L1, false);
+            for(int i = 0; i < num_cols; i++) 
+            {
+                std::vector<host> replicas;
+                hosts_->get_replicas(HOST_TYPE_L1, i, replicas);
+                host l1_tail = replicas.back();
+                update_connections(&l1_tail, HOST_TYPE_L2, new_head.column, &new_head);
+            }
+            for(int i = 0; i < num_cols; i++) 
+            {
+                std::vector<host> replicas;
+                hosts_->get_replicas(HOST_TYPE_L1, i, replicas);
+                host l1_tail = replicas.back();
+                resend_pending(&l1_tail);
+            }
+
+        }
     } else {
         throw std::logic_error("Not implemented");
     }
@@ -81,6 +133,20 @@ void proxy_manager::resend_pending(host *h) {
 
         std::vector<std::string> dummy_chain;
         client->resend_pending(i);
+
+        transport->close();
+    }
+}
+
+void proxy_manager::update_connections(host *h, int type, int column, host *target) {
+    for(int i = 0; i < h->num_workers; i++) {
+        auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<block_request_serviceClient>(protocol);
+        transport->open();
+
+        client->update_connections(type, column, target->hostname, target->port, target->num_workers);
 
         transport->close();
     }

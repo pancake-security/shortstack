@@ -43,6 +43,7 @@ private:
     int get_idx(const host &h, const std::vector<host> &list);
     void setup_chain(host *h, std::string path, chain_role role, host *next);
     void resend_pending(host *h);
+    void update_connections(host *h, int type, int column, host *target);
 
     std::shared_ptr<host_info> hosts_{nullptr};
     

@@ -28,3 +28,7 @@ void l2_handler::setup_chain(const int32_t block_id, const std::string& path, co
 void l2_handler::resend_pending(const int32_t block_id) {
     proxy_->resend_pending();
 }
+
+void l2_handler::update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
+    proxy_->update_connections(type, column, hostname, port, num_workers);
+}

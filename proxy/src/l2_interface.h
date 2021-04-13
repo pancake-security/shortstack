@@ -38,14 +38,16 @@ public:
   typedef std::vector<std::shared_ptr<l2proxyClient>> client_list;
 
 
-  l2proxy_interface(std::vector<host> hosts, std::string dummy_key);
+  l2proxy_interface(std::shared_ptr<host_info> hinfo, std::string dummy_key);
 
   void connect();
 
   void send_op(const l2_operation &op);
 
+  void update_connections(int column, std::string hostname, int port, int num_workers);
+
 private:
-  std::vector<host> hosts_;
+  std::shared_ptr<host_info> hosts_;
 
   std::vector<sock_list> sockets_;
   std::vector<transport_list> transports_;

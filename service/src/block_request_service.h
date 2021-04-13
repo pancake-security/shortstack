@@ -24,6 +24,7 @@ class block_request_serviceIf {
   virtual void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) = 0;
   virtual void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id) = 0;
   virtual void resend_pending(const int32_t block_id) = 0;
+  virtual void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) = 0;
 };
 
 class block_request_serviceIfFactory {
@@ -60,6 +61,9 @@ class block_request_serviceNull : virtual public block_request_serviceIf {
     return;
   }
   void resend_pending(const int32_t /* block_id */) {
+    return;
+  }
+  void update_connections(const int32_t /* type */, const int32_t /* column */, const std::string& /* hostname */, const int32_t /* port */, const int32_t /* num_workers */) {
     return;
   }
 };
@@ -327,6 +331,120 @@ class block_request_service_resend_pending_presult {
 
 };
 
+typedef struct _block_request_service_update_connections_args__isset {
+  _block_request_service_update_connections_args__isset() : type(false), column(false), hostname(false), port(false), num_workers(false) {}
+  bool type :1;
+  bool column :1;
+  bool hostname :1;
+  bool port :1;
+  bool num_workers :1;
+} _block_request_service_update_connections_args__isset;
+
+class block_request_service_update_connections_args {
+ public:
+
+  block_request_service_update_connections_args(const block_request_service_update_connections_args&);
+  block_request_service_update_connections_args& operator=(const block_request_service_update_connections_args&);
+  block_request_service_update_connections_args() : type(0), column(0), hostname(), port(0), num_workers(0) {
+  }
+
+  virtual ~block_request_service_update_connections_args() throw();
+  int32_t type;
+  int32_t column;
+  std::string hostname;
+  int32_t port;
+  int32_t num_workers;
+
+  _block_request_service_update_connections_args__isset __isset;
+
+  void __set_type(const int32_t val);
+
+  void __set_column(const int32_t val);
+
+  void __set_hostname(const std::string& val);
+
+  void __set_port(const int32_t val);
+
+  void __set_num_workers(const int32_t val);
+
+  bool operator == (const block_request_service_update_connections_args & rhs) const
+  {
+    if (!(type == rhs.type))
+      return false;
+    if (!(column == rhs.column))
+      return false;
+    if (!(hostname == rhs.hostname))
+      return false;
+    if (!(port == rhs.port))
+      return false;
+    if (!(num_workers == rhs.num_workers))
+      return false;
+    return true;
+  }
+  bool operator != (const block_request_service_update_connections_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_request_service_update_connections_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_request_service_update_connections_pargs {
+ public:
+
+
+  virtual ~block_request_service_update_connections_pargs() throw();
+  const int32_t* type;
+  const int32_t* column;
+  const std::string* hostname;
+  const int32_t* port;
+  const int32_t* num_workers;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_request_service_update_connections_result {
+ public:
+
+  block_request_service_update_connections_result(const block_request_service_update_connections_result&);
+  block_request_service_update_connections_result& operator=(const block_request_service_update_connections_result&);
+  block_request_service_update_connections_result() {
+  }
+
+  virtual ~block_request_service_update_connections_result() throw();
+
+  bool operator == (const block_request_service_update_connections_result & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const block_request_service_update_connections_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_request_service_update_connections_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_request_service_update_connections_presult {
+ public:
+
+
+  virtual ~block_request_service_update_connections_presult() throw();
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class block_request_serviceClient : virtual public block_request_serviceIf {
  public:
   block_request_serviceClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -360,6 +478,9 @@ class block_request_serviceClient : virtual public block_request_serviceIf {
   void resend_pending(const int32_t block_id);
   void send_resend_pending(const int32_t block_id);
   void recv_resend_pending();
+  void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
+  void send_update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
+  void recv_update_connections();
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -378,12 +499,14 @@ class block_request_serviceProcessor : public ::apache::thrift::TDispatchProcess
   void process_chain_request(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_setup_chain(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_resend_pending(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_update_connections(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   block_request_serviceProcessor(::apache::thrift::stdcxx::shared_ptr<block_request_serviceIf> iface) :
     iface_(iface) {
     processMap_["chain_request"] = &block_request_serviceProcessor::process_chain_request;
     processMap_["setup_chain"] = &block_request_serviceProcessor::process_setup_chain;
     processMap_["resend_pending"] = &block_request_serviceProcessor::process_resend_pending;
+    processMap_["update_connections"] = &block_request_serviceProcessor::process_update_connections;
   }
 
   virtual ~block_request_serviceProcessor() {}
@@ -439,6 +562,15 @@ class block_request_serviceMultiface : virtual public block_request_serviceIf {
     ifaces_[i]->resend_pending(block_id);
   }
 
+  void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->update_connections(type, column, hostname, port, num_workers);
+    }
+    ifaces_[i]->update_connections(type, column, hostname, port, num_workers);
+  }
+
 };
 
 // The 'concurrent' client is a thread safe client that correctly handles
@@ -477,6 +609,9 @@ class block_request_serviceConcurrentClient : virtual public block_request_servi
   void resend_pending(const int32_t block_id);
   int32_t send_resend_pending(const int32_t block_id);
   void recv_resend_pending(const int32_t seqid);
+  void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
+  int32_t send_update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
+  void recv_update_connections(const int32_t seqid);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
