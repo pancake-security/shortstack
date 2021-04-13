@@ -226,14 +226,7 @@ void l1_proxy::setup_callback() {
     std::vector<host> l2_hosts;
     hosts_->get_hosts_by_type(HOST_TYPE_L2, l2_hosts);
 
-    std::vector<std::string> l2_hostnames;
-    std::vector<int> l2_ports;
-    for (auto h : l2_hosts) {
-      l2_hostnames.push_back(h.hostname);
-      l2_ports.push_back(h.port);
-    }
-
-    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hostnames, l2_ports, dummy_key_);
+    l2_iface_ = std::make_shared<l2proxy_interface>(l2_hosts, dummy_key_);
 
     // Connect to L2 servers
     l2_iface_->connect();
