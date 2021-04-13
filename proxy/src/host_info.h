@@ -33,6 +33,8 @@ public:
   void get_hosts_by_type(int type, std::vector<host> &hosts);
   void get_replicas(int type, int column, std::vector<host> &replicas);
 
+  int get_num_columns(int type, bool count_workers);
+
 private:
   std::vector<host> hosts_;
 };

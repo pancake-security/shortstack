@@ -215,8 +215,10 @@ void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args
     return;
   }
   // Forward requests in batch to L2
-    for (auto &op : batch) {
-      // TODO: Update l1_seq_no in op
+    for (int i = 0; i < batch.size(); i++) {
+      l2_operation &op = batch[i];
+      op.seq_id.l1_idx = idx_;
+      op.seq_id.l1_seq_no = security_batch_size_*seq.server_seq_no + i;
       l2_iface_->send_op(op);
     }
 }

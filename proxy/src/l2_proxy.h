@@ -67,6 +67,9 @@ private:
   int idx_;
   std::shared_ptr<host_info> hosts_{nullptr};
 
+  // Per-L1 sequence numbers
+  std::vector<int64_t> last_seen_seq_;
+
 };
 
 #endif // L2_PROXY_H

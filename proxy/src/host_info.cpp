@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <map>
 
 #include "host_info.h"
 
@@ -143,6 +144,21 @@ void host_info::get_replicas(int type, int column, std::vector<host> &replicas) 
       }  
     }
     std::sort(replicas.begin(), replicas.end(), [](host const & a, host const &b) {return a.row < b.row;});
+}
+
+int host_info::get_num_columns(int type, bool count_workers) {
+    std::map<int, int> cols;
+  for(auto &h : hosts_) {
+      if(h.type == type) {
+          cols[h.column] = h.num_workers;
+      }  
+    }
+
+    int ret = 0;
+    for(auto &it : cols) {
+        ret += (count_workers)?(it.second):(1);
+    }
+    return ret;
 }
 
 bool host_info::get_base_idx(const std::string &instance_name, int &idx) {
