@@ -263,9 +263,14 @@ int main(int argc, char *argv[]) {
     load_trace(trace_location, trace);
     std::cout << "trace loaded" << std::endl;
 
+    std::random_device rd;
+    std::mt19937 gen(rd()); 
+    std::uniform_int_distribution<int64_t> distrib(0,10000);
+    int64_t base_client_id = distrib(gen);
+
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
-        threads.push_back(std::thread(client, i, client_batch_size, std::ref(trace),
+        threads.push_back(std::thread(client, base_client_id + i, client_batch_size, std::ref(trace),
                           output_directory, hinfo, std::ref(xput), queue_depth));
     }
     for (int i = 0; i < num_clients; i++)

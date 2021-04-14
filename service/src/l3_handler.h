@@ -24,9 +24,12 @@ public:
 
   l3_handler(std::shared_ptr<l3_proxy> proxy,
              std::shared_ptr<::apache::thrift::protocol::TProtocol> prot,
-             std::shared_ptr<thrift_response_client_map> &id_to_client);
+             std::shared_ptr<thrift_response_client_map> &id_to_client,
+             std::atomic<int64_t> &client_id_gen);
 
   void register_client_id(const int64_t client_id);
+
+  int64_t get_client_id();
 
   void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read, const bool dedup);
 
@@ -42,5 +45,8 @@ private:
   int64_t registered_client_id_;
 
   std::shared_ptr<thrift_response_client_map> &id_to_client_;
+
+  std::atomic<int64_t> &client_id_gen_;
+
 };
 #endif // L3_HANDLER_H

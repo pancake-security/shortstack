@@ -15,7 +15,7 @@ l3proxyIf* l3_handler_factory::getHandler(const ::apache::thrift::TConnectionInf
     sock->setSendTimeout(1200000);
     auto transport = std::make_shared<TFramedTransport>(conn_info.transport);
     std::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-    return new l3_handler(proxy_, protocol, id_to_client_);
+    return new l3_handler(proxy_, protocol, id_to_client_, client_id_gen_);
 }
 
 void l3_handler_factory::releaseHandler(l3proxyIf *handler) {

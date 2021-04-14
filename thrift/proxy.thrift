@@ -46,6 +46,7 @@ service l2proxy extends block_request_service {
 }
 
 service l3proxy {
+  i64 get_client_id();
   void register_client_id(1:i64 client_id);
   oneway void l3request(1:sequence_id seq_id, 2:string label, 3:string value, 4:bool is_read, 5:bool dedup);
 }
