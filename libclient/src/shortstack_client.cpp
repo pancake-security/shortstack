@@ -1,5 +1,7 @@
 #include "shortstack_client.h"
 
+#include <spdlog/spdlog.h>
+
 void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts) {
     client_id_ = client_id;
     done_.store(false);
@@ -55,13 +57,20 @@ void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts
   for (int i = 0; i < l3_hostnames.size(); i++) {
     for(int j = 0; j < l3_workers[i]; j++)
      {
-        auto socket = std::make_shared<TSocket>(l3_hostnames[i], l3_ports[i]);
+        auto socket = std::make_shared<TSocket>(l3_hostnames[i], l3_ports[i] + j);
         socket->setRecvTimeout(10000);
         socket->setSendTimeout(1200000);
         auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
         auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
         auto client = std::make_shared<l3proxyClient>(protocol);
-        transport->open();
+        
+        try{
+            transport->open();
+        } catch(TTransportException &e) {
+            spdlog::error("Connection to {}:{} failed with error: {}", l3_hostnames[i], l3_ports[i] + j, e.what());
+            continue;
+        }
+        
 
         l3_sockets_.push_back(socket);
         l3_transports_.push_back(transport);

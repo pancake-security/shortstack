@@ -55,3 +55,16 @@ void l3proxy_interface::send_op(const l3_operation &op) {
   wid = MurmurHash64A(op.label.data(), op.label.length(), 1995) % clients_[id].size();
   clients_[id][wid]->l3request(op.seq_id, op.label, op.value, op.is_read, op.dedup);
 }
+
+// Remove connection at given column
+void l3proxy_interface::remove_connection(int column) {
+  if(!(column >= 0 && column < clients_.size())) {
+    throw std::runtime_error("remove_connection column out of range");
+  }
+
+  clients_.erase(clients_.begin() + column);
+  protocols_.erase(protocols_.begin() + column);
+  transports_.erase(transports_.begin() + column);
+  sockets_.erase(sockets_.begin() + column);
+
+}

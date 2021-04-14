@@ -31,6 +31,8 @@ public:
 
   void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
 
+  void selective_resend_pending(const int32_t column, const int32_t num_columns);
+
 private:
   std::shared_ptr<l2_proxy> proxy_;
 

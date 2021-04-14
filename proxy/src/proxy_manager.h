@@ -18,6 +18,7 @@
 #include "command_response_reader.h"
 #include "host_info.h"
 #include "l3proxy.h"
+#include "l2proxy.h"
 #include "util.h"
 #include "chain_module.h"
 
@@ -44,6 +45,7 @@ private:
     void setup_chain(host *h, std::string path, chain_role role, host *next);
     void resend_pending(host *h);
     void update_connections(host *h, int type, int column, host *target);
+    void selective_resend_pending(host *h, int column, int num_columns);
 
     std::shared_ptr<host_info> hosts_{nullptr};
     

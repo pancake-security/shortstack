@@ -23,6 +23,7 @@ class l2proxyIf : virtual public block_request_serviceIf {
  public:
   virtual ~l2proxyIf() {}
   virtual void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value) = 0;
+  virtual void selective_resend_pending(const int32_t column, const int32_t num_columns) = 0;
 };
 
 class l2proxyIfFactory : virtual public block_request_serviceIfFactory {
@@ -53,6 +54,9 @@ class l2proxyNull : virtual public l2proxyIf , virtual public block_request_serv
  public:
   virtual ~l2proxyNull() {}
   void l2request(const sequence_id& /* seq_id */, const std::string& /* key */, const int32_t /* replica */, const std::string& /* value */) {
+    return;
+  }
+  void selective_resend_pending(const int32_t /* column */, const int32_t /* num_columns */) {
     return;
   }
 };
@@ -127,6 +131,99 @@ class l2proxy_l2request_pargs {
 
 };
 
+typedef struct _l2proxy_selective_resend_pending_args__isset {
+  _l2proxy_selective_resend_pending_args__isset() : column(false), num_columns(false) {}
+  bool column :1;
+  bool num_columns :1;
+} _l2proxy_selective_resend_pending_args__isset;
+
+class l2proxy_selective_resend_pending_args {
+ public:
+
+  l2proxy_selective_resend_pending_args(const l2proxy_selective_resend_pending_args&);
+  l2proxy_selective_resend_pending_args& operator=(const l2proxy_selective_resend_pending_args&);
+  l2proxy_selective_resend_pending_args() : column(0), num_columns(0) {
+  }
+
+  virtual ~l2proxy_selective_resend_pending_args() throw();
+  int32_t column;
+  int32_t num_columns;
+
+  _l2proxy_selective_resend_pending_args__isset __isset;
+
+  void __set_column(const int32_t val);
+
+  void __set_num_columns(const int32_t val);
+
+  bool operator == (const l2proxy_selective_resend_pending_args & rhs) const
+  {
+    if (!(column == rhs.column))
+      return false;
+    if (!(num_columns == rhs.num_columns))
+      return false;
+    return true;
+  }
+  bool operator != (const l2proxy_selective_resend_pending_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const l2proxy_selective_resend_pending_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class l2proxy_selective_resend_pending_pargs {
+ public:
+
+
+  virtual ~l2proxy_selective_resend_pending_pargs() throw();
+  const int32_t* column;
+  const int32_t* num_columns;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class l2proxy_selective_resend_pending_result {
+ public:
+
+  l2proxy_selective_resend_pending_result(const l2proxy_selective_resend_pending_result&);
+  l2proxy_selective_resend_pending_result& operator=(const l2proxy_selective_resend_pending_result&);
+  l2proxy_selective_resend_pending_result() {
+  }
+
+  virtual ~l2proxy_selective_resend_pending_result() throw();
+
+  bool operator == (const l2proxy_selective_resend_pending_result & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const l2proxy_selective_resend_pending_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const l2proxy_selective_resend_pending_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class l2proxy_selective_resend_pending_presult {
+ public:
+
+
+  virtual ~l2proxy_selective_resend_pending_presult() throw();
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class l2proxyClient : virtual public l2proxyIf, public block_request_serviceClient {
  public:
   l2proxyClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) :
@@ -140,6 +237,9 @@ class l2proxyClient : virtual public l2proxyIf, public block_request_serviceClie
   }
   void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
   void send_l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
+  void selective_resend_pending(const int32_t column, const int32_t num_columns);
+  void send_selective_resend_pending(const int32_t column, const int32_t num_columns);
+  void recv_selective_resend_pending();
 };
 
 class l2proxyProcessor : public block_request_serviceProcessor {
@@ -151,11 +251,13 @@ class l2proxyProcessor : public block_request_serviceProcessor {
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
   void process_l2request(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_selective_resend_pending(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   l2proxyProcessor(::apache::thrift::stdcxx::shared_ptr<l2proxyIf> iface) :
     block_request_serviceProcessor(iface),
     iface_(iface) {
     processMap_["l2request"] = &l2proxyProcessor::process_l2request;
+    processMap_["selective_resend_pending"] = &l2proxyProcessor::process_selective_resend_pending;
   }
 
   virtual ~l2proxyProcessor() {}
@@ -198,6 +300,15 @@ class l2proxyMultiface : virtual public l2proxyIf, public block_request_serviceM
     ifaces_[i]->l2request(seq_id, key, replica, value);
   }
 
+  void selective_resend_pending(const int32_t column, const int32_t num_columns) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->selective_resend_pending(column, num_columns);
+    }
+    ifaces_[i]->selective_resend_pending(column, num_columns);
+  }
+
 };
 
 // The 'concurrent' client is a thread safe client that correctly handles
@@ -216,6 +327,9 @@ class l2proxyConcurrentClient : virtual public l2proxyIf, public block_request_s
   }
   void l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
   void send_l2request(const sequence_id& seq_id, const std::string& key, const int32_t replica, const std::string& value);
+  void selective_resend_pending(const int32_t column, const int32_t num_columns);
+  int32_t send_selective_resend_pending(const int32_t column, const int32_t num_columns);
+  void recv_selective_resend_pending(const int32_t seqid);
 };
 
 #ifdef _MSC_VER

@@ -94,6 +94,30 @@ void proxy_manager::fail_node(std::string instance_name) {
             }
 
         }
+    } else if(failed_host.type == HOST_TYPE_L3) {
+        int num_l3_cols = hosts_->get_num_columns(HOST_TYPE_L3, false);
+
+        // Update connections at all L2 tails
+        int num_l2_cols = hosts_->get_num_columns(HOST_TYPE_L2, false);
+        for(int i = 0; i < num_l2_cols; i++) 
+        {
+            std::vector<host> replicas;
+            hosts_->get_replicas(HOST_TYPE_L2, i, replicas);
+            host l2_tail = replicas.back();
+            update_connections(&l2_tail, HOST_TYPE_L3, failed_host.column, nullptr);
+            spdlog::info("Update L3 connections at {}", l2_tail.instance_name);
+        }
+
+        // Selectively resend pending requests from L2 tails
+        for(int i = 0; i < num_l2_cols; i++) 
+        {
+            std::vector<host> replicas;
+            hosts_->get_replicas(HOST_TYPE_L2, i, replicas);
+            host l2_tail = replicas.back();
+            selective_resend_pending(&l2_tail, failed_host.column, num_l3_cols);
+            spdlog::info("Selectively resend pending requests at {}", l2_tail.instance_name);
+        }
+
     } else {
         throw std::logic_error("Not implemented");
     }
@@ -146,7 +170,25 @@ void proxy_manager::update_connections(host *h, int type, int column, host *targ
         auto client = std::make_shared<block_request_serviceClient>(protocol);
         transport->open();
 
-        client->update_connections(type, column, target->hostname, target->port, target->num_workers);
+        client->update_connections(type, column, (target == nullptr)?("nil"):(target->hostname), (target == nullptr)?(0):(target->port), (target == nullptr)?(0):(target->num_workers));
+
+        transport->close();
+    }
+}
+
+void proxy_manager::selective_resend_pending(host *h, int column, int num_columns) {
+    if(h->type != HOST_TYPE_L2) {
+        throw std::logic_error("selective_resend_pending call in invalid node type");
+    }
+
+    for(int i = 0; i < h->num_workers; i++) {
+        auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<l2proxyClient>(protocol);
+        transport->open();
+
+        client->selective_resend_pending(column, num_columns);
 
         transport->close();
     }
