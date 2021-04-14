@@ -42,6 +42,7 @@ service pancake_thrift_response{
 
 service l2proxy extends block_request_service {
   oneway void l2request(1:sequence_id seq_id, 2:string key, 3:i32 replica, 4:string value);
+  void selective_resend_pending(1:i32 column, 2:i32 num_columns);
 }
 
 service l3proxy {

@@ -41,6 +41,8 @@ public:
 
   void send_op(const l3_operation &op);
 
+  void remove_connection(int column);
+
 private:
 
   std::shared_ptr<host_info> hosts_;

@@ -43,8 +43,15 @@ public:
 
   void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
+  void selective_resend_pending(const int32_t column, const int32_t num_columns);
+
 private:
   // void consumer_thread(int id);
+
+  //  Filter requests that map to a given L3 column
+  bool filter_request(const sequence_id &seq, const arg_list &args, int column, int num_columns);
+
+  void forward_request(const sequence_id &seq, const arg_list &args, bool dedup);
 
   std::string instance_name_;
   // std::string server_host_name_;

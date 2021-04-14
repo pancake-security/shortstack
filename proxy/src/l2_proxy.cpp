@@ -3,6 +3,8 @@
 #include <spdlog/spdlog.h>
 #include "l2_proxy.h"
 
+#include "consistent_hash.h"
+
 void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
@@ -142,6 +144,82 @@ void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args
   
   spdlog::debug("replication_complete, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
 
+  forward_request(seq, args, true);
+  
+}
+
+void l2_proxy::setup_callback() {
+
+  if(is_tail() && l3_iface_ == nullptr) {
+    std::vector<host> l3_hosts;
+    hosts_->get_hosts_by_type(HOST_TYPE_L3, l3_hosts);
+
+    std::vector<std::string> l3_hostnames;
+    std::vector<int> l3_ports;
+    for (auto h : l3_hosts) {
+      l3_hostnames.push_back(h.hostname);
+      l3_ports.push_back(h.port);
+    }
+
+    // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    
+    l3_iface_ =  std::make_shared<l3proxy_interface>(hosts_);
+
+    // Connect to L3 servers
+    l3_iface_->connect();
+
+    spdlog::info("Worker {}: L3 interface connected", idx_);
+  }
+  
+}
+
+void l2_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
+  if(type != HOST_TYPE_L3) {
+    spdlog::error("Invalid update_connections call");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  if(!is_tail() || l3_iface_ == nullptr) {
+    spdlog::error("update_connections called on non-tail L3 node");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  if(hostname != "nil") {
+    spdlog::error("Invalid update_connections call: hostname not nil");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  l3_iface_->remove_connection(column);
+  spdlog::info("Removed L3 connection for column: {}", column);
+}
+
+// Selectively resend pending requests that hash to a given column
+void l2_proxy::selective_resend_pending(const int32_t column, const int32_t num_columns) {
+  if(!is_tail()) {
+    spdlog::error("selective_resend_pending called on non-tail node");
+    throw std::runtime_error("selective_resend_pending called on non-tail node");
+    return;
+  }
+
+  auto ops = pending_.lock_table();
+  try {
+    for (const auto &op: ops) {
+      if(filter_request(op.second.seq, op.second.args, column, num_columns)) {
+        forward_request(op.second.seq, op.second.args, false);
+      }
+    }
+  } catch (...) {
+    ops.unlock();
+    std::rethrow_exception(std::current_exception());
+  }
+  ops.unlock();
+  spdlog::info("Selectively resent pending requests");
+}
+
+void l2_proxy::forward_request(const sequence_id &seq, const arg_list &args, bool dedup) {
   l2_operation op;
   op.deserialize(args, 0);
   op.seq_id = seq;
@@ -176,36 +254,23 @@ void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args
   l3_op.label = label;
   l3_op.value = plaintext_update;
   l3_op.is_read = op.value == "";
-  l3_op.dedup = true;
+  l3_op.dedup = dedup;
   l3_iface_->send_op(l3_op);
 }
 
-void l2_proxy::setup_callback() {
+bool l2_proxy::filter_request(const sequence_id &seq, const arg_list &args, int column, int num_columns) {
+    l2_operation op;
+    op.deserialize(args, 0);
+    op.seq_id = seq;
 
-  if(is_tail() && l3_iface_ == nullptr) {
-    std::vector<host> l3_hosts;
-    hosts_->get_hosts_by_type(HOST_TYPE_L3, l3_hosts);
-
-    std::vector<std::string> l3_hostnames;
-    std::vector<int> l3_ports;
-    for (auto h : l3_hosts) {
-      l3_hostnames.push_back(h.hostname);
-      l3_ports.push_back(h.port);
+    auto it = replica_to_label_.find(op.key + std::to_string(op.replica));
+    if (it == replica_to_label_.end()) {
+      spdlog::error("Replica not found in label map: {}, {}", op.key, op.replica);
+      throw std::runtime_error("Replica not found in label map");
     }
+    auto label = std::to_string(it->second);
 
-    // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-    
-    l3_iface_ =  std::make_shared<l3proxy_interface>(hosts_);
+    auto id = consistent_hash(label, num_columns);
 
-    // Connect to L3 servers
-    l3_iface_->connect();
-
-    spdlog::info("Worker {}: L3 interface connected", idx_);
-  }
-  
-}
-
-void l2_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
-  // TODO: Implement
-  throw std::logic_error("Not implemented");
+    return (id == column);
 }
