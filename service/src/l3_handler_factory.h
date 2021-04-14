@@ -15,7 +15,7 @@ public:
 private:
     std::shared_ptr<l3_proxy> proxy_;
     std::shared_ptr<thrift_response_client_map> id_to_client_;
-    // std::atomic<int64_t> client_id_gen_;
+    std::atomic<int64_t> client_id_gen_{0};
 };
 
 #endif //L3_HANDLER_FACTORY_H

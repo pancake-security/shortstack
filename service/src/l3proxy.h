@@ -21,6 +21,7 @@
 class l3proxyIf {
  public:
   virtual ~l3proxyIf() {}
+  virtual int64_t get_client_id() = 0;
   virtual void register_client_id(const int64_t client_id) = 0;
   virtual void l3request(const sequence_id& seq_id, const std::string& label, const std::string& value, const bool is_read, const bool dedup) = 0;
 };
@@ -52,12 +53,108 @@ class l3proxyIfSingletonFactory : virtual public l3proxyIfFactory {
 class l3proxyNull : virtual public l3proxyIf {
  public:
   virtual ~l3proxyNull() {}
+  int64_t get_client_id() {
+    int64_t _return = 0;
+    return _return;
+  }
   void register_client_id(const int64_t /* client_id */) {
     return;
   }
   void l3request(const sequence_id& /* seq_id */, const std::string& /* label */, const std::string& /* value */, const bool /* is_read */, const bool /* dedup */) {
     return;
   }
+};
+
+
+class l3proxy_get_client_id_args {
+ public:
+
+  l3proxy_get_client_id_args(const l3proxy_get_client_id_args&);
+  l3proxy_get_client_id_args& operator=(const l3proxy_get_client_id_args&);
+  l3proxy_get_client_id_args() {
+  }
+
+  virtual ~l3proxy_get_client_id_args() throw();
+
+  bool operator == (const l3proxy_get_client_id_args & /* rhs */) const
+  {
+    return true;
+  }
+  bool operator != (const l3proxy_get_client_id_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const l3proxy_get_client_id_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class l3proxy_get_client_id_pargs {
+ public:
+
+
+  virtual ~l3proxy_get_client_id_pargs() throw();
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _l3proxy_get_client_id_result__isset {
+  _l3proxy_get_client_id_result__isset() : success(false) {}
+  bool success :1;
+} _l3proxy_get_client_id_result__isset;
+
+class l3proxy_get_client_id_result {
+ public:
+
+  l3proxy_get_client_id_result(const l3proxy_get_client_id_result&);
+  l3proxy_get_client_id_result& operator=(const l3proxy_get_client_id_result&);
+  l3proxy_get_client_id_result() : success(0) {
+  }
+
+  virtual ~l3proxy_get_client_id_result() throw();
+  int64_t success;
+
+  _l3proxy_get_client_id_result__isset __isset;
+
+  void __set_success(const int64_t val);
+
+  bool operator == (const l3proxy_get_client_id_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const l3proxy_get_client_id_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const l3proxy_get_client_id_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _l3proxy_get_client_id_presult__isset {
+  _l3proxy_get_client_id_presult__isset() : success(false) {}
+  bool success :1;
+} _l3proxy_get_client_id_presult__isset;
+
+class l3proxy_get_client_id_presult {
+ public:
+
+
+  virtual ~l3proxy_get_client_id_presult() throw();
+  int64_t* success;
+
+  _l3proxy_get_client_id_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
 };
 
 typedef struct _l3proxy_register_client_id_args__isset {
@@ -248,6 +345,9 @@ class l3proxyClient : virtual public l3proxyIf {
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
+  int64_t get_client_id();
+  void send_get_client_id();
+  int64_t recv_get_client_id();
   void register_client_id(const int64_t client_id);
   void send_register_client_id(const int64_t client_id);
   void recv_register_client_id();
@@ -268,11 +368,13 @@ class l3proxyProcessor : public ::apache::thrift::TDispatchProcessor {
   typedef  void (l3proxyProcessor::*ProcessFunction)(int32_t, ::apache::thrift::protocol::TProtocol*, ::apache::thrift::protocol::TProtocol*, void*);
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
+  void process_get_client_id(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_register_client_id(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_l3request(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   l3proxyProcessor(::apache::thrift::stdcxx::shared_ptr<l3proxyIf> iface) :
     iface_(iface) {
+    processMap_["get_client_id"] = &l3proxyProcessor::process_get_client_id;
     processMap_["register_client_id"] = &l3proxyProcessor::process_register_client_id;
     processMap_["l3request"] = &l3proxyProcessor::process_l3request;
   }
@@ -303,6 +405,15 @@ class l3proxyMultiface : virtual public l3proxyIf {
     ifaces_.push_back(iface);
   }
  public:
+  int64_t get_client_id() {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->get_client_id();
+    }
+    return ifaces_[i]->get_client_id();
+  }
+
   void register_client_id(const int64_t client_id) {
     size_t sz = ifaces_.size();
     size_t i = 0;
@@ -351,6 +462,9 @@ class l3proxyConcurrentClient : virtual public l3proxyIf {
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> getOutputProtocol() {
     return poprot_;
   }
+  int64_t get_client_id();
+  int32_t send_get_client_id();
+  int64_t recv_get_client_id(const int32_t seqid);
   void register_client_id(const int64_t client_id);
   int32_t send_register_client_id(const int64_t client_id);
   void recv_register_client_id(const int32_t seqid);

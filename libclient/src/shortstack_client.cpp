@@ -1,9 +1,15 @@
+
+#include <random>
+#include <iostream>
+
 #include "shortstack_client.h"
+
 
 #include <spdlog/spdlog.h>
 
 void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts) {
     client_id_ = client_id;
+
     done_.store(false);
 
     std::vector<host> l1_hosts;
