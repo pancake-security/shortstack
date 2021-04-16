@@ -29,6 +29,9 @@
 #include "dummy_kv.h"
 #include "reverse_connector.h"
 
+#include "atomicops.h"
+#include "readerwriterqueue.h"
+
 struct client_response {
   sequence_id seq_id;
   int op_code;
@@ -65,7 +68,7 @@ public:
   void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
 private:
-  // void consumer_thread(int id);
+  void consumer_thread();
   void crypto_thread(encryption_engine *enc_engine);
   void responder_thread();
 
@@ -86,7 +89,7 @@ private:
   std::vector<std::thread> threads_;
 
   // Per-consumer thread state
-  // std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
+  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<l3_operation>> operation_queue_;
   std::shared_ptr<storage_interface> storage_iface_;
 
   std::shared_ptr<l2ack_interface> ack_iface_;
