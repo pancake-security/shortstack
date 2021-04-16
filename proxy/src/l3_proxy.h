@@ -27,6 +27,7 @@
 #include "update_cache.h"
 #include "util.h"
 #include "dummy_kv.h"
+#include "reverse_connector.h"
 
 struct client_response {
   sequence_id seq_id;
@@ -42,6 +43,12 @@ struct crypto_operation {
 const int OP_GET = 0;
 const int OP_PUT = 1;
 
+class l2ack_interface : public reverse_connector {
+  public:
+    l2ack_interface(std::shared_ptr<host_info> hosts);
+    int route(const sequence_id &seq) override;
+};
+
 class l3_proxy {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
@@ -54,6 +61,8 @@ public:
                        const std::string &value, bool is_read, bool dedup);
 
   void close();
+
+  void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
 private:
   // void consumer_thread(int id);
@@ -79,6 +88,8 @@ private:
   // Per-consumer thread state
   // std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
   std::shared_ptr<storage_interface> storage_iface_;
+
+  std::shared_ptr<l2ack_interface> ack_iface_;
 
   // Per-crypto thread state
   std::shared_ptr<queue<crypto_operation>> crypto_queue_;

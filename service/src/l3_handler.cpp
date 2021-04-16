@@ -30,6 +30,26 @@ void l3_handler::l3request(const sequence_id &seq_id, const std::string &label,
   proxy_->async_operation(seq_id, label, value, is_read, dedup);
 }
 
+void l3_handler::chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) {
+  throw std::logic_error("Not implemented"); 
+}
+
+void l3_handler::setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
+  throw std::logic_error("Not implemented"); 
+}
+
+void l3_handler::resend_pending(const int32_t block_id) {
+  throw std::logic_error("Not implemented"); 
+}
+
+void l3_handler::update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
+  proxy_->update_connections(type, column, hostname, port, num_workers);
+}
+
+void l3_handler::external_ack(const sequence_id& seq) {
+  throw std::logic_error("Not implemented"); 
+}
+
 int64_t l3_handler::get_client_id() {
   return client_id_gen_.fetch_add(1L);
 }

@@ -18,7 +18,7 @@ l3proxyIf* l3_handler_factory::getHandler(const ::apache::thrift::TConnectionInf
     return new l3_handler(proxy_, protocol, id_to_client_, client_id_gen_);
 }
 
-void l3_handler_factory::releaseHandler(l3proxyIf *handler) {
+void l3_handler_factory::releaseHandler(block_request_serviceIf *handler) {
     auto br_handler = reinterpret_cast<l3_handler *>(handler);
     delete handler;
 }

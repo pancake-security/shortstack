@@ -48,7 +48,7 @@ service l2proxy extends block_request_service {
   void selective_resend_pending(1:i32 column, 2:i32 num_columns);
 }
 
-service l3proxy {
+service l3proxy extends block_request_service {
   i64 get_client_id();
   void register_client_id(1:i64 client_id);
   oneway void l3request(1:sequence_id seq_id, 2:string label, 3:string value, 4:bool is_read, 5:bool dedup);

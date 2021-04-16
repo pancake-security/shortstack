@@ -36,6 +36,8 @@ public:
 
     void init(std::shared_ptr<host_info> hosts);
 
+    void setup_reverse_connections();
+
     void fail_node(std::string instance_name);
 
 

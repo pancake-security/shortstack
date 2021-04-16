@@ -276,5 +276,9 @@ bool l2_proxy::filter_request(const sequence_id &seq, const arg_list &args, int 
 }
 
 void l2_proxy::external_ack(const sequence_id& seq) {
-  // TODO: Implement
+  // TODO: Temp debugging
+  spdlog::debug("Recvd external ack, l2_seq_no: {}", seq.l2_seq_no);
+  sequence_id seq_id = seq;
+  seq_id.server_seq_no = seq_id.l2_seq_no;
+  ack(seq_id);
 }

@@ -68,6 +68,10 @@ void l3_proxy::init_proxy(
           std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
   }
 
+  ack_iface_ = std::make_shared<l2ack_interface>(hosts_);
+
+  spdlog::info("Worker {}: Ack interface initialized", idx_);
+
   finished_.store(false);
 
     threads_.push_back(std::thread(&l3_proxy::crypto_thread, this,
@@ -141,8 +145,10 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
     spdlog::debug("encrypting value. len={}", plaintext.size());
     auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
 
+    auto ack_iface = ack_iface_;
+
     // Send PUT to KV
-    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext]() {
+    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext, ack_iface]() {
       spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
       // Enqueue responses for real queries
       if (l3_op.seq_id.client_id != fake_id) {
@@ -153,6 +159,8 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
 
         resp_queue->push(resp);
       }
+
+      ack_iface->send_ack(l3_op.seq_id);
     });
   }
 }
@@ -179,4 +187,25 @@ void l3_proxy::close() {
   }
 
   // TODO: Join responder thread
+}
+
+l2ack_interface::l2ack_interface(std::shared_ptr<host_info> hosts)
+: reverse_connector(hosts, HOST_TYPE_L2) {
+
+}
+
+int l2ack_interface::route(const sequence_id &seq) {
+  return seq.l2_idx;
+}
+
+void l3_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
+  if(type != HOST_TYPE_L2) {
+    spdlog::error("Invalid update_connections call");
+    throw std::runtime_error("Invalid update_connections call");
+    return;
+  }
+
+  ack_iface_->update_connections(column, hostname, port, num_workers);
+
+  spdlog::info("Updated L2 ack connection for column: {}", column);
 }
