@@ -36,3 +36,7 @@ void l2_handler::update_connections(const int32_t type, const int32_t column, co
 void l2_handler::selective_resend_pending(const int32_t column, const int32_t num_columns) {
     proxy_->selective_resend_pending(column, num_columns);
 }
+
+void l2_handler::external_ack(const sequence_id& seq) {
+    proxy_->external_ack(seq);
+}

@@ -148,6 +148,85 @@ uint32_t block_request_service_chain_request_pargs::write(::apache::thrift::prot
 }
 
 
+block_request_service_external_ack_args::~block_request_service_external_ack_args() throw() {
+}
+
+
+uint32_t block_request_service_external_ack_args::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+        if (ftype == ::apache::thrift::protocol::T_STRUCT) {
+          xfer += this->seq.read(iprot);
+          this->__isset.seq = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t block_request_service_external_ack_args::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("block_request_service_external_ack_args");
+
+  xfer += oprot->writeFieldBegin("seq", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += this->seq.write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+
+block_request_service_external_ack_pargs::~block_request_service_external_ack_pargs() throw() {
+}
+
+
+uint32_t block_request_service_external_ack_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("block_request_service_external_ack_pargs");
+
+  xfer += oprot->writeFieldBegin("seq", ::apache::thrift::protocol::T_STRUCT, 1);
+  xfer += (*(this->seq)).write(oprot);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+
 block_request_service_setup_chain_args::~block_request_service_setup_chain_args() throw() {
 }
 
@@ -792,6 +871,25 @@ void block_request_serviceClient::send_chain_request(const sequence_id& seq, con
   oprot_->getTransport()->flush();
 }
 
+void block_request_serviceClient::external_ack(const sequence_id& seq)
+{
+  send_external_ack(seq);
+}
+
+void block_request_serviceClient::send_external_ack(const sequence_id& seq)
+{
+  int32_t cseqid = 0;
+  oprot_->writeMessageBegin("external_ack", ::apache::thrift::protocol::T_ONEWAY, cseqid);
+
+  block_request_service_external_ack_pargs args;
+  args.seq = &seq;
+  args.write(oprot_);
+
+  oprot_->writeMessageEnd();
+  oprot_->getTransport()->writeEnd();
+  oprot_->getTransport()->flush();
+}
+
 void block_request_serviceClient::setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id)
 {
   send_setup_chain(block_id, path, chain, chain_role, next_block_id);
@@ -1015,6 +1113,43 @@ void block_request_serviceProcessor::process_chain_request(int32_t, ::apache::th
   return;
 }
 
+void block_request_serviceProcessor::process_external_ack(int32_t, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol*, void* callContext)
+{
+  void* ctx = NULL;
+  if (this->eventHandler_.get() != NULL) {
+    ctx = this->eventHandler_->getContext("block_request_service.external_ack", callContext);
+  }
+  ::apache::thrift::TProcessorContextFreer freer(this->eventHandler_.get(), ctx, "block_request_service.external_ack");
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->preRead(ctx, "block_request_service.external_ack");
+  }
+
+  block_request_service_external_ack_args args;
+  args.read(iprot);
+  iprot->readMessageEnd();
+  uint32_t bytes = iprot->getTransport()->readEnd();
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->postRead(ctx, "block_request_service.external_ack", bytes);
+  }
+
+  try {
+    iface_->external_ack(args.seq);
+  } catch (const std::exception&) {
+    if (this->eventHandler_.get() != NULL) {
+      this->eventHandler_->handlerError(ctx, "block_request_service.external_ack");
+    }
+    return;
+  }
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->asyncComplete(ctx, "block_request_service.external_ack");
+  }
+
+  return;
+}
+
 void block_request_serviceProcessor::process_setup_chain(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext)
 {
   void* ctx = NULL;
@@ -1196,6 +1331,28 @@ void block_request_serviceConcurrentClient::send_chain_request(const sequence_id
   args.seq = &seq;
   args.block_id = &block_id;
   args.arguments = &arguments;
+  args.write(oprot_);
+
+  oprot_->writeMessageEnd();
+  oprot_->getTransport()->writeEnd();
+  oprot_->getTransport()->flush();
+
+  sentry.commit();
+}
+
+void block_request_serviceConcurrentClient::external_ack(const sequence_id& seq)
+{
+  send_external_ack(seq);
+}
+
+void block_request_serviceConcurrentClient::send_external_ack(const sequence_id& seq)
+{
+  int32_t cseqid = 0;
+  ::apache::thrift::async::TConcurrentSendSentry sentry(&this->sync_);
+  oprot_->writeMessageBegin("external_ack", ::apache::thrift::protocol::T_ONEWAY, cseqid);
+
+  block_request_service_external_ack_pargs args;
+  args.seq = &seq;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();

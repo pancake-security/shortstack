@@ -106,6 +106,8 @@ add_executable(proxy_server
         ../proxy/src/initializer.cpp
         ../proxy/src/proxy_manager.h
         ../proxy/src/proxy_manager.cpp
+        ../proxy/src/reverse_connector.h
+        ../proxy/src/reverse_connector.cpp
 
         ../proxy/src/block_id_parser.h
         ../proxy/src/block_id_parser.cpp

@@ -22,6 +22,7 @@ class block_request_serviceIf {
  public:
   virtual ~block_request_serviceIf() {}
   virtual void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments) = 0;
+  virtual void external_ack(const sequence_id& seq) = 0;
   virtual void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id) = 0;
   virtual void resend_pending(const int32_t block_id) = 0;
   virtual void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) = 0;
@@ -55,6 +56,9 @@ class block_request_serviceNull : virtual public block_request_serviceIf {
  public:
   virtual ~block_request_serviceNull() {}
   void chain_request(const sequence_id& /* seq */, const int32_t /* block_id */, const std::vector<std::string> & /* arguments */) {
+    return;
+  }
+  void external_ack(const sequence_id& /* seq */) {
     return;
   }
   void setup_chain(const int32_t /* block_id */, const std::string& /* path */, const std::vector<std::string> & /* chain */, const int32_t /* chain_role */, const std::string& /* next_block_id */) {
@@ -126,6 +130,55 @@ class block_request_service_chain_request_pargs {
   const sequence_id* seq;
   const int32_t* block_id;
   const std::vector<std::string> * arguments;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _block_request_service_external_ack_args__isset {
+  _block_request_service_external_ack_args__isset() : seq(false) {}
+  bool seq :1;
+} _block_request_service_external_ack_args__isset;
+
+class block_request_service_external_ack_args {
+ public:
+
+  block_request_service_external_ack_args(const block_request_service_external_ack_args&);
+  block_request_service_external_ack_args& operator=(const block_request_service_external_ack_args&);
+  block_request_service_external_ack_args() {
+  }
+
+  virtual ~block_request_service_external_ack_args() throw();
+  sequence_id seq;
+
+  _block_request_service_external_ack_args__isset __isset;
+
+  void __set_seq(const sequence_id& val);
+
+  bool operator == (const block_request_service_external_ack_args & rhs) const
+  {
+    if (!(seq == rhs.seq))
+      return false;
+    return true;
+  }
+  bool operator != (const block_request_service_external_ack_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_request_service_external_ack_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_request_service_external_ack_pargs {
+ public:
+
+
+  virtual ~block_request_service_external_ack_pargs() throw();
+  const sequence_id* seq;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -472,6 +525,8 @@ class block_request_serviceClient : virtual public block_request_serviceIf {
   }
   void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
   void send_chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
+  void external_ack(const sequence_id& seq);
+  void send_external_ack(const sequence_id& seq);
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void send_setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void recv_setup_chain();
@@ -497,6 +552,7 @@ class block_request_serviceProcessor : public ::apache::thrift::TDispatchProcess
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
   void process_chain_request(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_external_ack(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_setup_chain(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_resend_pending(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_update_connections(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -504,6 +560,7 @@ class block_request_serviceProcessor : public ::apache::thrift::TDispatchProcess
   block_request_serviceProcessor(::apache::thrift::stdcxx::shared_ptr<block_request_serviceIf> iface) :
     iface_(iface) {
     processMap_["chain_request"] = &block_request_serviceProcessor::process_chain_request;
+    processMap_["external_ack"] = &block_request_serviceProcessor::process_external_ack;
     processMap_["setup_chain"] = &block_request_serviceProcessor::process_setup_chain;
     processMap_["resend_pending"] = &block_request_serviceProcessor::process_resend_pending;
     processMap_["update_connections"] = &block_request_serviceProcessor::process_update_connections;
@@ -542,6 +599,15 @@ class block_request_serviceMultiface : virtual public block_request_serviceIf {
       ifaces_[i]->chain_request(seq, block_id, arguments);
     }
     ifaces_[i]->chain_request(seq, block_id, arguments);
+  }
+
+  void external_ack(const sequence_id& seq) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->external_ack(seq);
+    }
+    ifaces_[i]->external_ack(seq);
   }
 
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id) {
@@ -603,6 +669,8 @@ class block_request_serviceConcurrentClient : virtual public block_request_servi
   }
   void chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
   void send_chain_request(const sequence_id& seq, const int32_t block_id, const std::vector<std::string> & arguments);
+  void external_ack(const sequence_id& seq);
+  void send_external_ack(const sequence_id& seq);
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   int32_t send_setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void recv_setup_chain(const int32_t seqid);

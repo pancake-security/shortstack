@@ -60,6 +60,8 @@ public:
 
     void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
 
+    void external_ack(const sequence_id& seq);
+
 private:
     int operation_count_ = 0;
     std::shared_ptr<proxy> proxy_;

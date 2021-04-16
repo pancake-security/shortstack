@@ -90,3 +90,7 @@ void thrift_handler::resend_pending(const int32_t block_id) {
 void thrift_handler::update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
     throw std::runtime_error("Not implemented");
 }
+
+void thrift_handler::external_ack(const sequence_id& seq) {
+    throw std::runtime_error("Not implemented");
+}

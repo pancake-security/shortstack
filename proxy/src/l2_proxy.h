@@ -45,6 +45,8 @@ public:
 
   void selective_resend_pending(const int32_t column, const int32_t num_columns);
 
+  void external_ack(const sequence_id& seq);
+
 private:
   // void consumer_thread(int id);
 

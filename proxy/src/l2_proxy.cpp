@@ -274,3 +274,7 @@ bool l2_proxy::filter_request(const sequence_id &seq, const arg_list &args, int 
 
     return (id == column);
 }
+
+void l2_proxy::external_ack(const sequence_id& seq) {
+  // TODO: Implement
+}
