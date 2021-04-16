@@ -23,6 +23,7 @@
 #include "queue.h"
 #include "util.h"
 #include "chain_module.h"
+#include <libcuckoo/cuckoohash_map.hh>
 
 struct l1_operation {
   sequence_id seq_id;
@@ -85,6 +86,8 @@ public:
 
   void setup_callback() override;
 
+  void ack_callback(const sequence_id &seq);
+
   void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
   void flush();
@@ -129,6 +132,8 @@ private:
   const int64_t fake_client_id_ = -1995;
   int idx_;
   std::shared_ptr<host_info> hosts_{nullptr};
+
+  libcuckoo::cuckoohash_map<int64_t, int> pending_count_;
 
 };
 

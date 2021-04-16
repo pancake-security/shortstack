@@ -319,6 +319,9 @@ virtual void replication_complete(const sequence_id &seq, const arg_list &args) 
 // Callback upon chain setup
 virtual void setup_callback() = 0;
 
+// Callback upon ack
+virtual void ack_callback(const sequence_id &seq) = 0;
+
 
   /**
    * @brief Request for the first time
