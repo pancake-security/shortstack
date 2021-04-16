@@ -189,8 +189,9 @@ void l1_proxy::async_get_batch(const sequence_id &seq_id, int queue_id,
 };
 
 void l1_proxy::run_command(const sequence_id &seq, const arg_list &args) {
-  // TODO: Maintain per-request ACK count
   spdlog::debug("run_command, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
+
+  pending_count_.insert(seq.server_seq_no, security_batch_size_);
 }
 
 void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
@@ -233,6 +234,10 @@ void l1_proxy::setup_callback() {
 
     spdlog::info("Worker {}: L2 interface connected", idx_);
   }
+}
+
+void l1_proxy::ack_callback(const sequence_id &seq) {
+  pending_count_.erase(seq.server_seq_no);
 }
 
 void l1_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
@@ -346,5 +351,23 @@ void l1_proxy::resend_pending_stub(const int32_t block_id) {
 }
 
 void l1_proxy::external_ack(const sequence_id& seq) {
-  // TODO: Implement
+  // TODO: Temp debugging
+  spdlog::debug("Recvd external ack, l1_seq_no: {}", seq.l1_seq_no);
+
+  bool zero = false;
+  // op.seq_id.l1_seq_no = security_batch_size_*seq.server_seq_no + i;
+  auto update_fn = [&](int &count) {
+            count -= 1;
+            zero = (count == 0);
+        };
+
+  int64_t batch_seq_no = seq.l1_seq_no/security_batch_size_;
+  pending_count_.update_fn(batch_seq_no, update_fn);
+
+  if(zero) {
+    // Acks for all requests in batch received
+    sequence_id seq_no;
+    seq_no.server_seq_no = batch_seq_no;
+    ack(seq_no);
+  }
 }

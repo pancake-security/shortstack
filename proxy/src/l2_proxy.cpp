@@ -170,30 +170,46 @@ void l2_proxy::setup_callback() {
 
     spdlog::info("Worker {}: L3 interface connected", idx_);
   }
+
+  if(is_head() && ack_iface_ == nullptr) {
+    ack_iface_ = std::make_shared<l1ack_interface>(hosts_);
+    spdlog::info("Worker {}: L1 ack interface initialized", idx_);
+  }
   
 }
 
 void l2_proxy::update_connections(int type, int column, std::string hostname, int port, int num_workers) {
-  if(type != HOST_TYPE_L3) {
+  if(type == HOST_TYPE_L3) {
+    if(!is_tail() || l3_iface_ == nullptr) {
+      spdlog::error("update_connections called on non-tail L2 node");
+      throw std::runtime_error("Invalid update_connections call");
+      return;
+    }
+
+    if(hostname != "nil") {
+      spdlog::error("Invalid update_connections call: hostname not nil");
+      throw std::runtime_error("Invalid update_connections call");
+      return;
+    }
+
+    l3_iface_->remove_connection(column);
+    spdlog::info("Removed L3 connection for column: {}", column);
+
+  } else if(type == HOST_TYPE_L1) {
+      if(!is_head() || ack_iface_ == nullptr) {
+        spdlog::error("update_connections called on non-head L2 node");
+        throw std::runtime_error("Invalid update_connections call");
+        return;
+      }
+
+      ack_iface_->update_connections(column, hostname, port, num_workers);
+      spdlog::info("Updated L1 connection for column: {}", column);
+  } else {
     spdlog::error("Invalid update_connections call");
     throw std::runtime_error("Invalid update_connections call");
     return;
   }
-
-  if(!is_tail() || l3_iface_ == nullptr) {
-    spdlog::error("update_connections called on non-tail L3 node");
-    throw std::runtime_error("Invalid update_connections call");
-    return;
-  }
-
-  if(hostname != "nil") {
-    spdlog::error("Invalid update_connections call: hostname not nil");
-    throw std::runtime_error("Invalid update_connections call");
-    return;
-  }
-
-  l3_iface_->remove_connection(column);
-  spdlog::info("Removed L3 connection for column: {}", column);
+  
 }
 
 // Selectively resend pending requests that hash to a given column
@@ -281,4 +297,24 @@ void l2_proxy::external_ack(const sequence_id& seq) {
   sequence_id seq_id = seq;
   seq_id.server_seq_no = seq_id.l2_seq_no;
   ack(seq_id);
+}
+
+l1ack_interface::l1ack_interface(std::shared_ptr<host_info> hosts)
+: reverse_connector(hosts, HOST_TYPE_L1) {
+
+}
+
+int l1ack_interface::route(const sequence_id &seq) {
+  return seq.l1_idx;
+}
+
+void l2_proxy::ack_callback(const sequence_id &seq) {
+  if(is_head()) {
+    if(ack_iface_ == nullptr) {
+      spdlog::error("Invalide state: ack_iface is null at L2 head");
+      throw std::runtime_error("Invalid state");
+    }
+
+    ack_iface_->send_ack(seq);
+  }
 }

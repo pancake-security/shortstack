@@ -24,6 +24,13 @@
 #include "update_cache.h"
 #include "util.h"
 #include "chain_module.h"
+#include "reverse_connector.h"
+
+class l1ack_interface : public reverse_connector {
+  public:
+    l1ack_interface(std::shared_ptr<host_info> hosts);
+    int route(const sequence_id &seq) override;
+};
 
 class l2_proxy: public chain_module {
 public:
@@ -40,6 +47,7 @@ public:
   void run_command(const sequence_id &seq, const arg_list &args) override;
   void replication_complete(const sequence_id &seq, const arg_list &args) override;
   void setup_callback() override;
+  void ack_callback(const sequence_id &seq) override;
 
   void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
@@ -80,6 +88,8 @@ private:
 
   // Per-L1 sequence numbers
   std::vector<int64_t> last_seen_seq_;
+
+  std::shared_ptr<l1ack_interface> ack_iface_{nullptr};
 
 };
 

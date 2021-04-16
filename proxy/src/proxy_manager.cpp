@@ -12,9 +12,12 @@ void proxy_manager::init(std::shared_ptr<host_info> hosts) {
 void proxy_manager::setup_reverse_connections() {
     int num_cols_l3 = hosts_->get_num_columns(HOST_TYPE_L3, false);
     int num_cols_l2 = hosts_->get_num_columns(HOST_TYPE_L2, false);
+    int num_cols_l1 = hosts_->get_num_columns(HOST_TYPE_L1, false);
 
     std::vector<host> l3_hosts;
     std::vector<host> l2_hosts;
+    std::vector<host> l2_heads;
+    std::vector<host> l1_tails;
     for(int i = 0; i < num_cols_l3; i++) {
         std::vector<host> replicas;
         hosts_->get_replicas(HOST_TYPE_L3, i, replicas);
@@ -24,6 +27,12 @@ void proxy_manager::setup_reverse_connections() {
         std::vector<host> replicas;
         hosts_->get_replicas(HOST_TYPE_L2, i, replicas);
         l2_hosts.push_back(replicas.back());
+        l2_heads.push_back(replicas.front());
+    }
+    for(int i = 0; i < num_cols_l1; i++) {
+        std::vector<host> replicas;
+        hosts_->get_replicas(HOST_TYPE_L1, i, replicas);
+        l1_tails.push_back(replicas.back());
     }
 
     for(int i = 0; i < l3_hosts.size(); i++) 
@@ -33,6 +42,15 @@ void proxy_manager::setup_reverse_connections() {
         }
         spdlog::info("Setup reverse connections for L3: {}", l3_hosts[i].instance_name);
     }
+
+    for(int i = 0; i < l2_heads.size(); i++) 
+    {
+        for(int j = 0; j < l1_tails.size(); j++) {
+            update_connections(&l2_heads[i], HOST_TYPE_L1, j, &l1_tails[j]);
+        }
+        spdlog::info("Setup reverse connections for L2: {}", l3_hosts[i].instance_name);
+    }
+
     
 }
 
