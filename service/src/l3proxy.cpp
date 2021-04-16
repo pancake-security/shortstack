@@ -610,16 +610,7 @@ bool l3proxyProcessor::dispatchCall(::apache::thrift::protocol::TProtocol* iprot
   ProcessMap::iterator pfn;
   pfn = processMap_.find(fname);
   if (pfn == processMap_.end()) {
-    iprot->skip(::apache::thrift::protocol::T_STRUCT);
-    iprot->readMessageEnd();
-    iprot->getTransport()->readEnd();
-    ::apache::thrift::TApplicationException x(::apache::thrift::TApplicationException::UNKNOWN_METHOD, "Invalid method name: '"+fname+"'");
-    oprot->writeMessageBegin(fname, ::apache::thrift::protocol::T_EXCEPTION, seqid);
-    x.write(oprot);
-    oprot->writeMessageEnd();
-    oprot->getTransport()->writeEnd();
-    oprot->getTransport()->flush();
-    return true;
+    return block_request_serviceProcessor::dispatchCall(iprot, oprot, fname, seqid, callContext);
   }
   (this->*(pfn->second))(seqid, iprot, oprot, callContext);
   return true;

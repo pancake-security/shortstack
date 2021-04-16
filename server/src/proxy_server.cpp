@@ -607,13 +607,15 @@ void manager_usage() {
 
     std::cout << "\t -h: Hosts file\n";
     std::cout << "\t -f: Instance name to fail\n";
+    std::cout << "\t -s: Setup reverse connections\n";
 }
 
 int manager_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string fail_node;
     int o;
-    while ((o = getopt(argc, argv, "h:f:")) != -1) {
+    bool setup = false;
+    while ((o = getopt(argc, argv, "h:f:s")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -621,11 +623,15 @@ int manager_main(int argc, char *argv[]) {
             case 'f':
                 fail_node = std::string(optarg);
                 break;
+            case 's':
+                setup = true;
+                break;
             default:
                 manager_usage();
                 exit(-1);
         }
     }
+
 
     auto hinfo = std::make_shared<host_info>();
     if(!hinfo->load(hosts_file)) {
@@ -636,7 +642,12 @@ int manager_main(int argc, char *argv[]) {
     auto manager = std::make_shared<proxy_manager>();
     manager->init(hinfo);
 
-    manager->fail_node(fail_node);
+    if(setup) {
+        manager->setup_reverse_connections();
+    } else {
+        manager->fail_node(fail_node);
+    }
+    
 }
 
 void usage() {

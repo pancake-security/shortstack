@@ -10,7 +10,7 @@ public:
     explicit l3_handler_factory(std::shared_ptr<l3_proxy> proxy,
                                     std::shared_ptr<thrift_response_client_map> id_to_client);
     l3proxyIf *getHandler(const ::apache::thrift::TConnectionInfo &connInfo) override;
-    void releaseHandler(l3proxyIf *anIf) override;
+    void releaseHandler(block_request_serviceIf* anIf) override;
 
 private:
     std::shared_ptr<l3_proxy> proxy_;
