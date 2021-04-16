@@ -89,6 +89,8 @@ public:
 
   void flush();
 
+  void external_ack(const sequence_id& seq);
+
   std::string output_location_ = "log";
   std::string trace_location_ = "";
   std::string instance_name_ = "";
