@@ -35,6 +35,8 @@ void l3_proxy::init_proxy(
 
   // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
+  operation_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<l3_operation>>();
+
   auto q = std::make_shared<queue<crypto_operation>>();
   crypto_queue_ = q;
 
@@ -74,6 +76,8 @@ void l3_proxy::init_proxy(
 
   finished_.store(false);
 
+  threads_.push_back(std::thread(&l3_proxy::consumer_thread, this));
+
     threads_.push_back(std::thread(&l3_proxy::crypto_thread, this,
                                    new encryption_engine(encryption_engine_)));
 
@@ -99,21 +103,38 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
 
   last_seen_seq_[op.seq_id.l2_idx] = std::max(last_seen_seq_[op.seq_id.l2_idx], op.seq_id.l2_seq_no);
 
-  auto storage_iface = storage_iface_;
-  auto crypto_queue = crypto_queue_;
-  spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+  operation_queue_->enqueue(op);
+
+  
+}
+
+void l3_proxy::consumer_thread() {
+  while(true) {
+    l3_operation op;
+    operation_queue_->wait_dequeue(op);
+    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+
+    if (finished_.load()) {
+        break;
+      }
+
+    auto storage_iface = storage_iface_;
+    auto crypto_queue = crypto_queue_;
+    
 
 
-  // Send GET request to KV
-  // Execution will continue in crypto_thread
-  storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
-      spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-      // Enqueue task for crypto thread
-      crypto_operation crypto_op;
-      crypto_op.l3_op = op;
-      crypto_op.kv_response = resp_val;
-      crypto_queue->push(crypto_op);
-  });
+    // Send GET request to KV
+    // Execution will continue in crypto_thread
+    storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
+        spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+        // Enqueue task for crypto thread
+        crypto_operation crypto_op;
+        crypto_op.l3_op = op;
+        crypto_op.kv_response = resp_val;
+        crypto_queue->push(crypto_op);
+    });
+  }
+  
 }
 
 

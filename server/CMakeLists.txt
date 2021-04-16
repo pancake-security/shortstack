@@ -117,6 +117,9 @@ add_executable(proxy_server
         ../proxy/src/chain_response_client.cpp
         ../proxy/src/chain_module.h
         ../proxy/src/chain_module.cpp
+
+        ../proxy/src/atomicops.h
+        ../proxy/src/readerwriterqueue.h
         
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
