@@ -41,3 +41,7 @@ void dummy_kv::async_get(const std::string &key, std::function<void (const std::
 void dummy_kv::async_put(const std::string &key, const std::string &value, std::function<void ()> callback) {
     callback();
 }
+
+void dummy_kv::flush() {
+    // Do nothing
+}

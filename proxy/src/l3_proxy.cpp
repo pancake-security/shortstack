@@ -8,7 +8,7 @@ void l3_proxy::init_proxy(
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
     bool encryption_enabled, bool resp_delivery,
-    bool kv_interaction, int local_idx) {
+    bool kv_interaction, int local_idx, int64_t timeout_us) {
 
   hosts_ = hosts;
   instance_name_ = instance_name;
@@ -16,6 +16,7 @@ void l3_proxy::init_proxy(
   encryption_enabled_ = encryption_enabled;
   resp_delivery_ = resp_delivery;
   kv_interaction_ = kv_interaction;
+  timeout_us_ = timeout_us;
 
   id_to_client_ = client_map;
 
@@ -37,8 +38,7 @@ void l3_proxy::init_proxy(
 
   operation_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<l3_operation>>();
 
-  auto q = std::make_shared<queue<crypto_operation>>();
-  crypto_queue_ = q;
+  crypto_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_operation>>();;
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
@@ -110,8 +110,16 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
 
 void l3_proxy::consumer_thread() {
   while(true) {
+    bool success;
     l3_operation op;
-    operation_queue_->wait_dequeue(op);
+    success = operation_queue_->wait_dequeue_timed(op, timeout_us_);
+    if(!success) {
+      // Timeout
+      spdlog::info("Batch timeout");
+      storage_iface_->flush();
+      continue;
+    }
+
     spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
     if (finished_.load()) {
@@ -122,7 +130,6 @@ void l3_proxy::consumer_thread() {
     auto crypto_queue = crypto_queue_;
     
 
-
     // Send GET request to KV
     // Execution will continue in crypto_thread
     storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
@@ -131,7 +138,7 @@ void l3_proxy::consumer_thread() {
         crypto_operation crypto_op;
         crypto_op.l3_op = op;
         crypto_op.kv_response = resp_val;
-        crypto_queue->push(crypto_op);
+        crypto_queue->enqueue(crypto_op);
     });
   }
   
@@ -147,7 +154,16 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
   auto resp_queue = respond_queue_;
 
   while(true) {
-    auto crypto_op = crypto_queue_->pop(); // Blocking call
+    crypto_operation crypto_op;
+    bool success = crypto_queue_->wait_dequeue_timed(crypto_op, timeout_us_); // Blocking call
+
+    if(!success) {
+      // Timeout
+      spdlog::info("Batch timeout");
+      storage_iface->flush();
+      continue;
+    }
+
     spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
 
     if (finished_.load()) {

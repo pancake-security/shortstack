@@ -23,6 +23,7 @@
 #include "thrift_utils.h"
 #include "proxy_manager.h"
 #include "update_cache.h"
+#include <cpp_redis/cpp_redis>
 
 #define HOST "127.0.0.1"
 #define PROXY_PORT 9090
@@ -407,6 +408,7 @@ int l3_main(int argc, char *argv[]) {
     bool encryption = true;
     bool resp_delivery = true;
     bool kv_interaction = true;
+    int64_t timeout_us = 1000000;
     while ((o = getopt(argc, argv, "h:i:s:gc:prk")) != -1) {
         switch (o) {
             case 'h':
@@ -473,7 +475,7 @@ int l3_main(int argc, char *argv[]) {
     {
         id_to_clients[i] = std::make_shared<thrift_response_client_map>();
         proxys[i] = std::make_shared<l3_proxy>();
-        proxys[i]->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_clients[i], encryption, resp_delivery, kv_interaction, i);
+        proxys[i]->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_clients[i], encryption, resp_delivery, kv_interaction, i, timeout_us);
         proxy_servers[i] = l3_server::create(proxys[i], id_to_clients[i], proxy_port + i, 1, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }
@@ -650,6 +652,33 @@ int manager_main(int argc, char *argv[]) {
     
 }
 
+int redisdbg_main(int argc, char *argv[]) {
+    cpp_redis::network::set_default_nb_workers(1);
+
+    auto client = std::make_shared<cpp_redis::client>();
+
+    client->connect();
+
+    client->set("abc", "hello", [](cpp_redis::reply& reply) {
+        std::cout << "SET complete" << std::endl;
+    });
+
+    client->commit();
+
+    std::vector<std::pair<std::string, std::string>> kvs;
+    kvs.push_back(std::make_pair("abc", "bye"));
+    kvs.push_back(std::make_pair("def", "gghg"));
+
+    client->mset(kvs, [](cpp_redis::reply& reply) {
+        std::cout << "MSET complete" << std::endl;
+    });    
+
+    client->commit();
+
+    sleep(10);
+
+}
+
 void usage() {
     std::cout << "Usage: ./proxy_server <type> .....\n";
 }
@@ -675,6 +704,8 @@ int main(int argc, char *argv[]) {
         return dump_main(argc - 1, argv + 1);
     } else if(strcmp(argv[1], "manager") == 0) {
         return manager_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "redisdbg") == 0) {
+        return redisdbg_main(argc - 1, argv + 1);
     } else {    
         std::cerr << "Unkown proxy type" << std::endl;
         exit(-1);

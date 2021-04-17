@@ -19,5 +19,7 @@ public:
     // Async operations
     virtual void async_get(const std::string &key, std::function<void (const std::string&)> callback) = 0;
     virtual void async_put(const std::string &key, const std::string &value, std::function<void ()> callback) = 0;
+
+    virtual void flush() = 0;
 };
 #endif //STORAGE_INTERFACE_H
