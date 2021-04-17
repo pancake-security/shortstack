@@ -58,7 +58,8 @@ public:
                   int kvclient_threads, int storage_batch_size,
                   std::shared_ptr<thrift_response_client_map> client_map,
                   bool encryption_enabled, bool resp_delivery,
-                  bool kv_interaction, int local_idx);
+                  bool kv_interaction, int local_idx,
+                  int64_t timeout_us);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read, bool dedup);
@@ -95,7 +96,7 @@ private:
   std::shared_ptr<l2ack_interface> ack_iface_;
 
   // Per-crypto thread state
-  std::shared_ptr<queue<crypto_operation>> crypto_queue_;
+  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_operation>> crypto_queue_;
   std::shared_ptr<storage_interface> storage_iface2_;
 
   std::shared_ptr<thrift_response_client_map> id_to_client_;
@@ -113,6 +114,7 @@ private:
 
   // Per-L2 sequence numbers
   std::vector<int64_t> last_seen_seq_;
+  int64_t timeout_us_;
 };
 
 #endif // L3_PROXY_H

@@ -19,6 +19,8 @@ public:
     void async_get(const std::string &key, std::function<void (const std::string&)> callback) override;
     void async_put(const std::string &key, const std::string &value, std::function<void ()> callback) override;
 
+    void flush() override;
+
 private:
     int val_size_;
     std::string dummy_val_;
