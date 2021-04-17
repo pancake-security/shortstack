@@ -153,14 +153,14 @@ void cooldown(std::vector<int> &latencies, int client_batch_size,
     run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd);
 }
 
-void client(int idx, int client_batch_size, trace_vector &trace, std::string output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth) {
+void client(int idx, int client_batch_size, trace_vector &trace, std::string output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies) {
     shortstack_client client;
     client.init(idx, hinfo);
 
     std::cout << "Client " << idx << " initialized" << std::endl;
     std::atomic<int> indiv_xput;
     std::atomic_init(&indiv_xput, 0);
-    std::vector<int> latencies;
+    // std::vector<int> latencies;
     std::cout << "Beginning warmup" << std::endl;
     warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
     std::cout << "Beginning benchmark" << std::endl;
@@ -268,12 +268,32 @@ int main(int argc, char *argv[]) {
     std::uniform_int_distribution<int64_t> distrib(0,10000);
     int64_t base_client_id = distrib(gen);
 
+    std::vector<std::vector<int>> client_lats;
+    for(int i = 0; i < num_clients; i++) 
+    {
+        std::vector<int> lats;
+        client_lats.push_back(lats);
+    }
+
+
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
         threads.push_back(std::thread(client, base_client_id + i, client_batch_size, std::ref(trace),
-                          output_directory, hinfo, std::ref(xput), queue_depth));
+                          output_directory, hinfo, std::ref(xput), queue_depth, std::ref(client_lats[i])));
     }
     for (int i = 0; i < num_clients; i++)
         threads[i].join();
     std::cout << "Xput was: " << xput << std::endl;
+
+    double lat_sum = 0;
+    double lat_count = 0;
+    for(int i = 0; i < num_clients; i++) 
+    {
+        for(auto l : client_lats[i]) {
+            lat_sum += l;
+            lat_count += 1;
+        }
+    }
+
+    std::cout << "Average latency: " << (lat_sum/lat_count) << std::endl;
 }
