@@ -49,13 +49,13 @@ void l3_proxy::init_proxy(
   if(kv_interaction_) {  
     
       storage_iface_ =
-          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_);
       for (int j = 1; j < kv_hosts.size(); j++) {
         storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
   
       storage_iface2_ =
-          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_);
       for (int j = 1; j < kv_hosts.size(); j++) {
         storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
