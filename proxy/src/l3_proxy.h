@@ -59,7 +59,7 @@ public:
                   std::shared_ptr<thrift_response_client_map> client_map,
                   bool encryption_enabled, bool resp_delivery,
                   bool kv_interaction, int local_idx,
-                  int64_t timeout_us);
+                  int64_t timeout_us, bool ack_delivery);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read, bool dedup);
@@ -108,6 +108,7 @@ private:
   bool encryption_enabled_ = true;
   bool resp_delivery_ = true;
   bool kv_interaction_ = true;
+  bool ack_delivery_ = true;
 
   int idx_;
   std::shared_ptr<host_info> hosts_{nullptr};
