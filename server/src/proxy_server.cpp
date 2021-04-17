@@ -408,8 +408,9 @@ int l3_main(int argc, char *argv[]) {
     bool encryption = true;
     bool resp_delivery = true;
     bool kv_interaction = true;
+    bool ack_delivery = true;
     int64_t timeout_us = 1000000;
-    while ((o = getopt(argc, argv, "h:i:s:gc:prk")) != -1) {
+    while ((o = getopt(argc, argv, "h:i:s:gc:prka")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -434,6 +435,9 @@ int l3_main(int argc, char *argv[]) {
                 break;
             case 'k':
                 kv_interaction = false;
+                break;
+            case 'a':
+                ack_delivery = false;
                 break;
             default:
                 l3_usage();
@@ -475,7 +479,7 @@ int l3_main(int argc, char *argv[]) {
     {
         id_to_clients[i] = std::make_shared<thrift_response_client_map>();
         proxys[i] = std::make_shared<l3_proxy>();
-        proxys[i]->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_clients[i], encryption, resp_delivery, kv_interaction, i, timeout_us);
+        proxys[i]->init_proxy(hinfo, instance_name, 1, storage_batch_size, id_to_clients[i], encryption, resp_delivery, kv_interaction, i, timeout_us, ack_delivery);
         proxy_servers[i] = l3_server::create(proxys[i], id_to_clients[i], proxy_port + i, 1, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }

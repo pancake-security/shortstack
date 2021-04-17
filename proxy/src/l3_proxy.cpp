@@ -8,7 +8,7 @@ void l3_proxy::init_proxy(
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
     bool encryption_enabled, bool resp_delivery,
-    bool kv_interaction, int local_idx, int64_t timeout_us) {
+    bool kv_interaction, int local_idx, int64_t timeout_us, bool ack_delivery) {
 
   hosts_ = hosts;
   instance_name_ = instance_name;
@@ -17,6 +17,7 @@ void l3_proxy::init_proxy(
   resp_delivery_ = resp_delivery;
   kv_interaction_ = kv_interaction;
   timeout_us_ = timeout_us;
+  ack_delivery_ = ack_delivery;
 
   id_to_client_ = client_map;
 
@@ -183,9 +184,10 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
     auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
 
     auto ack_iface = ack_iface_;
+    auto ack_delivery = ack_delivery_;
 
     // Send PUT to KV
-    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext, ack_iface]() {
+    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext, ack_iface, ack_delivery]() {
       spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
       // Enqueue responses for real queries
       if (l3_op.seq_id.client_id != fake_id) {
@@ -197,7 +199,9 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
         resp_queue->push(resp);
       }
 
-      ack_iface->send_ack(l3_op.seq_id);
+      if(ack_delivery) {
+        ack_iface->send_ack(l3_op.seq_id);
+      }
     });
   }
 }
