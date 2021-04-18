@@ -48,7 +48,7 @@ void proxy_manager::setup_reverse_connections() {
         for(int j = 0; j < l1_tails.size(); j++) {
             update_connections(&l2_heads[i], HOST_TYPE_L1, j, &l1_tails[j]);
         }
-        spdlog::info("Setup reverse connections for L2: {}", l3_hosts[i].instance_name);
+        spdlog::info("Setup reverse connections for L2: {}", l2_heads[i].instance_name);
     }
 
     
