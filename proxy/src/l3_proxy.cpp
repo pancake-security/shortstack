@@ -71,11 +71,13 @@ void l3_proxy::init_proxy(
   };
 
   auto fake_id = fake_client_id_;
-  auto resp_queue = respond_queue_;
+  // auto resp_queue = respond_queue_;
+  auto resp_del = resp_delivery_;
+  auto id_client_map = id_to_client_;
   auto ack_iface = ack_iface_;
   auto ack_del = ack_delivery_;
 
-  redis_interface::put_callback put_cb = [fake_id, resp_queue, ack_iface, ack_del](const std::vector<l3_operation> &ops) {
+  redis_interface::put_callback put_cb = [fake_id, resp_del, id_client_map, ack_iface, ack_del](const std::vector<l3_operation> &ops) {
       for(int i = 0; i < ops.size(); i++) {
         const l3_operation &l3_op = ops[i];
         spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
@@ -86,8 +88,11 @@ void l3_proxy::init_proxy(
           resp.result = (l3_op.is_read) ? l3_op.plaintext : "";
           resp.op_code = (l3_op.is_read) ? OP_GET : OP_PUT;
 
-          // TODO: Even this can be batched
-          resp_queue->push(resp);
+          std::vector<std::string>results;
+          results.push_back((resp_del)?(resp.result):(""));
+          // // TODO: Disabling response delivery for perf debugging
+          // results.push_back("");
+          id_client_map->async_respond_client(resp.seq_id, resp.op_code, results);
         }
 
         if(ack_del) {
@@ -134,7 +139,7 @@ void l3_proxy::init_proxy(
     threads_.push_back(std::thread(&l3_proxy::crypto_thread, this,
                                    new encryption_engine(encryption_engine_)));
 
-  threads_.push_back(std::thread(&l3_proxy::responder_thread, this));
+  // threads_.push_back(std::thread(&l3_proxy::responder_thread, this));
 }
 
 void l3_proxy::async_operation(const sequence_id &seq_id,
