@@ -22,13 +22,18 @@
 
 class sequence_id;
 
+typedef struct _sequence_id__isset {
+  _sequence_id__isset() : ts(false), diag(false) {}
+  bool ts :1;
+  bool diag :1;
+} _sequence_id__isset;
 
 class sequence_id : public virtual ::apache::thrift::TBase {
  public:
 
   sequence_id(const sequence_id&);
   sequence_id& operator=(const sequence_id&);
-  sequence_id() : client_id(0), client_seq_no(0), server_seq_no(0), l1_idx(0), l1_seq_no(0), l2_idx(0), l2_seq_no(0) {
+  sequence_id() : client_id(0), client_seq_no(0), server_seq_no(0), l1_idx(0), l1_seq_no(0), l2_idx(0), l2_seq_no(0), ts(0), diag() {
   }
 
   virtual ~sequence_id() throw();
@@ -39,6 +44,10 @@ class sequence_id : public virtual ::apache::thrift::TBase {
   int64_t l1_seq_no;
   int32_t l2_idx;
   int64_t l2_seq_no;
+  int64_t ts;
+  std::string diag;
+
+  _sequence_id__isset __isset;
 
   void __set_client_id(const int64_t val);
 
@@ -53,6 +62,10 @@ class sequence_id : public virtual ::apache::thrift::TBase {
   void __set_l2_idx(const int32_t val);
 
   void __set_l2_seq_no(const int64_t val);
+
+  void __set_ts(const int64_t val);
+
+  void __set_diag(const std::string& val);
 
   bool operator == (const sequence_id & rhs) const
   {
@@ -69,6 +82,14 @@ class sequence_id : public virtual ::apache::thrift::TBase {
     if (!(l2_idx == rhs.l2_idx))
       return false;
     if (!(l2_seq_no == rhs.l2_seq_no))
+      return false;
+    if (__isset.ts != rhs.__isset.ts)
+      return false;
+    else if (__isset.ts && !(ts == rhs.ts))
+      return false;
+    if (__isset.diag != rhs.__isset.diag)
+      return false;
+    else if (__isset.diag && !(diag == rhs.diag))
       return false;
     return true;
   }

@@ -37,7 +37,7 @@ public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   std::shared_ptr<distribution_info> dist_info,
                   std::shared_ptr<update_cache> update_cache,
-                  bool uc_enabled, int local_idx);
+                  bool uc_enabled, int local_idx, bool stats);
 
   void async_operation(const sequence_id &seq_id, const std::string &key,
                        int replica, const std::string &value);
@@ -90,6 +90,7 @@ private:
   std::vector<int64_t> last_seen_seq_;
 
   std::shared_ptr<l1ack_interface> ack_iface_{nullptr};
+  bool stats_;
 
 };
 

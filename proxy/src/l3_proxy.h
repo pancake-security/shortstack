@@ -61,7 +61,7 @@ public:
                   std::shared_ptr<thrift_response_client_map> client_map,
                   bool encryption_enabled, bool resp_delivery,
                   bool kv_interaction, int local_idx,
-                  int64_t timeout_us, bool ack_delivery);
+                  int64_t timeout_us, bool ack_delivery, bool stats);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read, bool dedup);
@@ -118,6 +118,8 @@ private:
   // Per-L2 sequence numbers
   std::vector<int64_t> last_seen_seq_;
   int64_t timeout_us_;
+
+  bool stats_;
 };
 
 #endif // L3_PROXY_H

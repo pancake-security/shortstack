@@ -45,6 +45,16 @@ void sequence_id::__set_l2_idx(const int32_t val) {
 void sequence_id::__set_l2_seq_no(const int64_t val) {
   this->l2_seq_no = val;
 }
+
+void sequence_id::__set_ts(const int64_t val) {
+  this->ts = val;
+__isset.ts = true;
+}
+
+void sequence_id::__set_diag(const std::string& val) {
+  this->diag = val;
+__isset.diag = true;
+}
 std::ostream& operator<<(std::ostream& out, const sequence_id& obj)
 {
   obj.printTo(out);
@@ -136,6 +146,22 @@ uint32_t sequence_id::read(::apache::thrift::protocol::TProtocol* iprot) {
           xfer += iprot->skip(ftype);
         }
         break;
+      case 8:
+        if (ftype == ::apache::thrift::protocol::T_I64) {
+          xfer += iprot->readI64(this->ts);
+          this->__isset.ts = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 9:
+        if (ftype == ::apache::thrift::protocol::T_STRING) {
+          xfer += iprot->readString(this->diag);
+          this->__isset.diag = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -195,6 +221,16 @@ uint32_t sequence_id::write(::apache::thrift::protocol::TProtocol* oprot) const 
   xfer += oprot->writeI64(this->l2_seq_no);
   xfer += oprot->writeFieldEnd();
 
+  if (this->__isset.ts) {
+    xfer += oprot->writeFieldBegin("ts", ::apache::thrift::protocol::T_I64, 8);
+    xfer += oprot->writeI64(this->ts);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.diag) {
+    xfer += oprot->writeFieldBegin("diag", ::apache::thrift::protocol::T_STRING, 9);
+    xfer += oprot->writeString(this->diag);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -209,6 +245,9 @@ void swap(sequence_id &a, sequence_id &b) {
   swap(a.l1_seq_no, b.l1_seq_no);
   swap(a.l2_idx, b.l2_idx);
   swap(a.l2_seq_no, b.l2_seq_no);
+  swap(a.ts, b.ts);
+  swap(a.diag, b.diag);
+  swap(a.__isset, b.__isset);
 }
 
 sequence_id::sequence_id(const sequence_id& other0) {
@@ -219,6 +258,9 @@ sequence_id::sequence_id(const sequence_id& other0) {
   l1_seq_no = other0.l1_seq_no;
   l2_idx = other0.l2_idx;
   l2_seq_no = other0.l2_seq_no;
+  ts = other0.ts;
+  diag = other0.diag;
+  __isset = other0.__isset;
 }
 sequence_id& sequence_id::operator=(const sequence_id& other1) {
   client_id = other1.client_id;
@@ -228,6 +270,9 @@ sequence_id& sequence_id::operator=(const sequence_id& other1) {
   l1_seq_no = other1.l1_seq_no;
   l2_idx = other1.l2_idx;
   l2_seq_no = other1.l2_seq_no;
+  ts = other1.ts;
+  diag = other1.diag;
+  __isset = other1.__isset;
   return *this;
 }
 void sequence_id::printTo(std::ostream& out) const {
@@ -240,6 +285,8 @@ void sequence_id::printTo(std::ostream& out) const {
   out << ", " << "l1_seq_no=" << to_string(l1_seq_no);
   out << ", " << "l2_idx=" << to_string(l2_idx);
   out << ", " << "l2_seq_no=" << to_string(l2_seq_no);
+  out << ", " << "ts="; (__isset.ts ? (out << to_string(ts)) : (out << "<null>"));
+  out << ", " << "diag="; (__isset.diag ? (out << to_string(diag)) : (out << "<null>"));
   out << ")";
 }
 

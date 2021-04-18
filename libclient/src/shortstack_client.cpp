@@ -130,9 +130,10 @@ int64_t shortstack_client::put(const std::string &key, const std::string &value)
     return seq.client_seq_no;
 }
 
-int64_t shortstack_client::poll_responses(std::string &out) {
+int64_t shortstack_client::poll_responses(std::string &out, std::string &diag) {
     auto resp = response_queue_->pop();
     out = resp.value;
+    diag = resp.diag;
     return resp.sequence_num;
 }
 
@@ -157,6 +158,9 @@ void shortstack_client::response_thread(int idx) {
         }
 
         resp.value = _return[0]; 
+        if(_return.size() >= 2) {
+            resp.diag = _return[1];
+        }
         response_queue_->push(resp);
 
         _return.clear();

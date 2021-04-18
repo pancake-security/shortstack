@@ -105,6 +105,17 @@ void l2_operation::serialize(std::vector<std::string> &args) {
   args.push_back(key);
   args.push_back(std::to_string(replica));
   args.push_back(value);
+
+  if(seq_id.__isset.ts) {
+    args.push_back("$ts$");
+    args.push_back(std::to_string(seq_id.ts));
+  }
+
+  if(seq_id.__isset.diag) {
+    args.push_back("$diag$");
+    args.push_back(seq_id.diag);
+  }
+
 }
 
 
@@ -114,11 +125,21 @@ int l2_operation::deserialize(const std::vector<std::string> & args, int idx) {
   }
 
   int start = idx;
-  seq_id.client_id = std::stoi(args[idx++]);
-  seq_id.client_seq_no = std::stoi(args[idx++]);
+  seq_id.client_id = std::stoll(args[idx++]);
+  seq_id.client_seq_no = std::stoll(args[idx++]);
   key = args[idx++];
   replica = std::stoi(args[idx++]);
   value = args[idx++];
+
+  if((int)args.size() - idx >= 2 && args[idx] == "$ts$") {
+    idx++;
+    seq_id.__set_ts(std::stoll(args[idx++]));
+  }
+
+  if((int)args.size() - idx >= 2 && args[idx] == "$diag$") {
+    idx++;
+    seq_id.__set_diag(args[idx++]);
+  }
 
   return idx - start;
 }

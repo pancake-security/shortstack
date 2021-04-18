@@ -42,28 +42,31 @@ int main(int argc, char *argv[]) {
     client->init(base_client_id, hinfo);
     std::cout << "Initialized client" << std::endl;
 
-    std::string res;
+    std::string res, diag;
     int64_t req_id = client->get("1");
     std::cout << "get 1 sent\n";
-    assert(client->poll_responses(res) == req_id);
+    assert(client->poll_responses(res, diag) == req_id);
     std::cout << "get response recvd\n";
+    std::cout << "diag: " << diag;
 
     
     req_id = client->put("1", "hello");
     std::cout << "put 1 sent\n";
-    assert(client->poll_responses(res) == req_id);
+    assert(client->poll_responses(res, diag) == req_id);
     std::cout << "put 1 response recvd\n";
     assert(res == "");
+    std::cout << "diag: " << diag;
 
     req_id = client->get("1");
     std::cout << "get 1 sent\n";
-    assert(client->poll_responses(res) == req_id);
+    assert(client->poll_responses(res, diag) == req_id);
     std::cout << "get 1 response recvd\n";
     if(res != "hello")
     {
         std::cout << "inconsistency " << res << "\n";
     }
     assert(res == "hello");
+    std::cout << "diag: " << diag;
 
     
     for(int i = 1; i <= 5; i++) {
@@ -74,7 +77,7 @@ int main(int argc, char *argv[]) {
     for(int i = 1; i <= 5; i++) 
     {
         std::string out;
-        client->poll_responses(out);
+        client->poll_responses(out, diag);
         assert(out == "");
     }
 
@@ -88,7 +91,7 @@ int main(int argc, char *argv[]) {
     for(int i = 1; i <= 5; i++) 
     {
         std::string out;
-        auto seq = client->poll_responses(out);
+        auto seq = client->poll_responses(out, diag);
         if(seq_to_key[seq] != out) {
             std::cout << "Inconsistency! " << seq_to_key[seq] << ", " << out << "\n"; 
         }

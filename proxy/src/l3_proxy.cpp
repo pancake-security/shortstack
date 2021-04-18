@@ -1,6 +1,7 @@
 // Shortstack L3 proxy implementation
 
 #include <spdlog/spdlog.h>
+#include <chrono>
 #include "l3_proxy.h"
 
 void l3_proxy::init_proxy(
@@ -8,7 +9,8 @@ void l3_proxy::init_proxy(
     int kvclient_threads, int storage_batch_size,
     std::shared_ptr<thrift_response_client_map> client_map,
     bool encryption_enabled, bool resp_delivery,
-    bool kv_interaction, int local_idx, int64_t timeout_us, bool ack_delivery) {
+    bool kv_interaction, int local_idx, int64_t timeout_us, bool ack_delivery,
+    bool stats) {
 
   hosts_ = hosts;
   instance_name_ = instance_name;
@@ -18,6 +20,7 @@ void l3_proxy::init_proxy(
   kv_interaction_ = kv_interaction;
   timeout_us_ = timeout_us;
   ack_delivery_ = ack_delivery;
+  stats_ = stats;
 
   id_to_client_ = client_map;
 
@@ -158,6 +161,11 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
 
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
+  if(stats_) {
+    int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    op.seq_id.__set_ts(us_from_epoch);
+  }
+
     auto storage_iface = storage_iface_;
     // auto crypto_queue = crypto_queue_;
     
@@ -263,6 +271,11 @@ void l3_proxy::responder_thread(){
         results.push_back((resp_delivery_)?(resp.result):(""));
         // // TODO: Disabling response delivery for perf debugging
         // results.push_back("");
+        if(stats_) {
+          int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+          auto elapsed = us_from_epoch - resp.seq_id.ts;
+          resp.seq_id.__set_diag(resp.seq_id.diag + std::to_string(elapsed) + ",");
+        }
         id_to_client_->async_respond_client(resp.seq_id, resp.op_code, results);
     }
     std::cout << "Quitting response thread" << std::endl;

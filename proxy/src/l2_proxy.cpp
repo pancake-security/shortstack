@@ -1,6 +1,7 @@
 // Shortstack L2 proxy implementation
 
 #include <spdlog/spdlog.h>
+#include <chrono>
 #include "l2_proxy.h"
 
 #include "consistent_hash.h"
@@ -9,10 +10,11 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
                           std::shared_ptr<update_cache> update_cache,
-                          bool uc_enabled, int local_idx) {
+                          bool uc_enabled, int local_idx, bool stats) {
   hosts_ = hosts;
   instance_name_ = instance_name;
   update_cache_enabled_ = uc_enabled;
+  stats_ = stats;
 
   replica_to_label_ = dist_info->replica_to_label_;
   key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;
@@ -85,6 +87,11 @@ void l2_proxy::async_operation(const sequence_id &seq_id,
     return;
   }
 
+  if(stats_) {
+    int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    op.seq_id.__set_ts(us_from_epoch);
+  }
+
   if (key_to_number_of_replicas_.find(op.key) ==
       key_to_number_of_replicas_.end()) {
         spdlog::error("Key not found in key_to_number_of_replicas_: {}", op.key);
@@ -143,7 +150,7 @@ void l2_proxy::run_command(const sequence_id &seq, const arg_list &args) {
 void l2_proxy::replication_complete(const sequence_id &seq, const arg_list &args) {
   
   spdlog::debug("replication_complete, server_seq_no: {}, len(args): {}", seq.server_seq_no, args.size());
-
+  
   forward_request(seq, args, true);
   
 }
@@ -239,6 +246,7 @@ void l2_proxy::forward_request(const sequence_id &seq, const arg_list &args, boo
   l2_operation op;
   op.deserialize(args, 0);
   op.seq_id = seq;
+  
 
   std::string plaintext_update;
   if(update_cache_enabled_) {
@@ -261,6 +269,12 @@ void l2_proxy::forward_request(const sequence_id &seq, const arg_list &args, boo
     spdlog::error("replication_complete on non-tail node");
     return;
   }
+
+  if(stats_) {
+        int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        auto elapsed = us_from_epoch - op.seq_id.ts;
+        op.seq_id.__set_diag(op.seq_id.diag + std::to_string(elapsed) + ",");
+      }
 
   // Send to L3
   l3_operation l3_op;
