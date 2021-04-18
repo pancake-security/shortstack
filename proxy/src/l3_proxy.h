@@ -1,5 +1,5 @@
 //
-// Shortstack L2 proxy
+// Shortstack L3 proxy
 //
 
 #ifndef L3_PROXY_H
@@ -21,8 +21,8 @@
 #include "l3_interface.h"
 #include "operation.h"
 #include "queue.h"
-#include "redis.h"
-#include "storage_interface.h"
+// #include "redis.h"
+#include "redis_interface.h"
 #include "thrift_response_client_map.h"
 #include "update_cache.h"
 #include "util.h"
@@ -42,6 +42,8 @@ struct crypto_operation {
   l3_operation l3_op;
   std::string kv_response;
 };
+
+typedef std::vector<crypto_operation> crypto_op_batch;
 
 const int OP_GET = 0;
 const int OP_PUT = 1;
@@ -90,14 +92,14 @@ private:
   std::vector<std::thread> threads_;
 
   // Per-consumer thread state
-  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<l3_operation>> operation_queue_;
-  std::shared_ptr<storage_interface> storage_iface_;
+  // std::shared_ptr<moodycamel::BlockingReaderWriterQueue<l3_operation>> operation_queue_;
+  std::shared_ptr<redis_interface> storage_iface_;
 
   std::shared_ptr<l2ack_interface> ack_iface_;
 
   // Per-crypto thread state
-  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_operation>> crypto_queue_;
-  std::shared_ptr<storage_interface> storage_iface2_;
+  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>> crypto_queue_;
+  std::shared_ptr<redis_interface> storage_iface2_;
 
   std::shared_ptr<thrift_response_client_map> id_to_client_;
   std::shared_ptr<queue<client_response>> respond_queue_;

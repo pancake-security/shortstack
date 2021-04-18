@@ -108,6 +108,8 @@ add_executable(proxy_server
         ../proxy/src/proxy_manager.cpp
         ../proxy/src/reverse_connector.h
         ../proxy/src/reverse_connector.cpp
+        ../proxy/src/redis_interface.h
+        ../proxy/src/redis_interface.cpp
 
         ../proxy/src/block_id_parser.h
         ../proxy/src/block_id_parser.cpp
