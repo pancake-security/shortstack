@@ -22,6 +22,7 @@ struct l3_operation {
   sequence_id seq_id;
   std::string label;
   std::string value;
+  std::string plaintext;
   bool is_read;
   bool dedup;
 };

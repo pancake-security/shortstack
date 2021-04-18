@@ -37,26 +37,81 @@ void l3_proxy::init_proxy(
 
   // int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
-  operation_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<l3_operation>>();
+  // operation_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<l3_operation>>();
 
-  crypto_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_operation>>();;
+  crypto_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>>();;
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
+  ack_iface_ = std::make_shared<l2ack_interface>(hosts_);
+
+  spdlog::info("Worker {}: Ack interface initialized", idx_);
+
   cpp_redis::network::set_default_nb_workers(kvclient_threads);
+
+  auto crypto_queue = crypto_queue_;
+  redis_interface::get_callback get_cb = [crypto_queue](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
+      crypto_op_batch batch;
+      for(int i = 0; i < ops.size(); i++) 
+      {
+        const l3_operation &op = ops[i];
+        spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+        // Enqueue task for crypto thread
+        crypto_operation crypto_op;
+        crypto_op.l3_op = op;
+        crypto_op.kv_response = vals[i];
+        batch.push_back(crypto_op);
+      }
+
+      crypto_queue->enqueue(batch);
+  };
+
+  redis_interface::get_callback get_cb_dummy = [](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
+    spdlog::error("Uninitialized get callback");
+  };
+
+  auto fake_id = fake_client_id_;
+  auto resp_queue = respond_queue_;
+  auto ack_iface = ack_iface_;
+  auto ack_del = ack_delivery_;
+
+  redis_interface::put_callback put_cb = [fake_id, resp_queue, ack_iface, ack_del](const std::vector<l3_operation> &ops) {
+      for(int i = 0; i < ops.size(); i++) {
+        const l3_operation &l3_op = ops[i];
+        spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
+        // Enqueue responses for real queries
+        if (l3_op.seq_id.client_id != fake_id) {
+          client_response resp;
+          resp.seq_id = l3_op.seq_id;
+          resp.result = (l3_op.is_read) ? l3_op.plaintext : "";
+          resp.op_code = (l3_op.is_read) ? OP_GET : OP_PUT;
+
+          // TODO: Even this can be batched
+          resp_queue->push(resp);
+        }
+
+        if(ack_del) {
+          ack_iface->send_ack(l3_op.seq_id);
+        }
+      }
+  };
+
+  redis_interface::put_callback put_cb_dummy = [](const std::vector<l3_operation> &ops) {
+    spdlog::error("Uninitialized put callback");
+  };
 
   std::vector<host> kv_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
   if(kv_interaction_) {  
     
       storage_iface_ =
-          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_);
+          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb_dummy);
       for (int j = 1; j < kv_hosts.size(); j++) {
         storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
   
       storage_iface2_ =
-          std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_);
+          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, 10000000, get_cb_dummy, put_cb);
       for (int j = 1; j < kv_hosts.size(); j++) {
         storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
@@ -64,20 +119,17 @@ void l3_proxy::init_proxy(
       spdlog::info("Worker {}: Storage interfaces connected", idx_);
    
   } else {
-      storage_iface_ =
-          std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
+      // storage_iface_ =
+      //     std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
     
-      storage_iface2_ =
-          std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
+      // storage_iface2_ =
+      //     std::make_shared<dummy_kv>(1000); // TODO: val size is hardcoded
+      throw std::logic_error("dummy KV Not implemented");
   }
-
-  ack_iface_ = std::make_shared<l2ack_interface>(hosts_);
-
-  spdlog::info("Worker {}: Ack interface initialized", idx_);
 
   finished_.store(false);
 
-  threads_.push_back(std::thread(&l3_proxy::consumer_thread, this));
+  // threads_.push_back(std::thread(&l3_proxy::consumer_thread, this));
 
     threads_.push_back(std::thread(&l3_proxy::crypto_thread, this,
                                    new encryption_engine(encryption_engine_)));
@@ -104,46 +156,53 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
 
   last_seen_seq_[op.seq_id.l2_idx] = std::max(last_seen_seq_[op.seq_id.l2_idx], op.seq_id.l2_seq_no);
 
-  operation_queue_->enqueue(op);
-
-  
-}
-
-void l3_proxy::consumer_thread() {
-  while(true) {
-    bool success;
-    l3_operation op;
-    success = operation_queue_->wait_dequeue_timed(op, timeout_us_);
-    if(!success) {
-      // Timeout
-      spdlog::info("Batch timeout");
-      storage_iface_->flush();
-      continue;
-    }
-
-    spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-
-    if (finished_.load()) {
-        break;
-      }
+  spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
 
     auto storage_iface = storage_iface_;
-    auto crypto_queue = crypto_queue_;
+    // auto crypto_queue = crypto_queue_;
     
 
     // Send GET request to KV
     // Execution will continue in crypto_thread
-    storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
-        spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-        // Enqueue task for crypto thread
-        crypto_operation crypto_op;
-        crypto_op.l3_op = op;
-        crypto_op.kv_response = resp_val;
-        crypto_queue->enqueue(crypto_op);
-    });
-  }
+    storage_iface->async_get(op.label, op);
   
 }
+
+// void l3_proxy::consumer_thread() {
+//   while(true) {
+//     bool success;
+//     l3_operation op;
+//     success = operation_queue_->wait_dequeue_timed(op, timeout_us_);
+//     if(!success) {
+//       // Timeout
+//       spdlog::info("Batch timeout");
+//       storage_iface_->flush();
+//       continue;
+//     }
+
+//     spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+
+//     if (finished_.load()) {
+//         break;
+//       }
+
+//     auto storage_iface = storage_iface_;
+//     auto crypto_queue = crypto_queue_;
+    
+
+//     // Send GET request to KV
+//     // Execution will continue in crypto_thread
+//     storage_iface->async_get(op.label, [op, crypto_queue](const std::string &resp_val) {
+//         spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+//         // Enqueue task for crypto thread
+//         crypto_operation crypto_op;
+//         crypto_op.l3_op = op;
+//         crypto_op.kv_response = resp_val;
+//         crypto_queue->enqueue(crypto_op);
+//     });
+//   }
+  
+// }
 
 
 
@@ -155,54 +214,44 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
   auto resp_queue = respond_queue_;
 
   while(true) {
-    crypto_operation crypto_op;
-    bool success = crypto_queue_->wait_dequeue_timed(crypto_op, timeout_us_); // Blocking call
+    crypto_op_batch batch;
+    crypto_queue_->wait_dequeue(batch); // Blocking call
 
-    if(!success) {
-      // Timeout
-      spdlog::info("Batch timeout");
-      storage_iface->flush();
-      continue;
-    }
+    // if(!success) {
+    //   // Timeout
+    //   spdlog::info("Batch timeout");
+    //   storage_iface->flush();
+    //   continue;
+    // }
 
-    spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
-
-    if (finished_.load()) {
+     if (finished_.load()) {
       break;
     }
 
-    auto l3_op = crypto_op.l3_op;
-    auto cipher = crypto_op.kv_response;
-    spdlog::debug("decrypting value. len={}", cipher.size());
-    auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
+    for(auto &crypto_op : batch) {
+        spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
 
-    if (l3_op.value != "") {
-      plaintext = l3_op.value;
+        auto l3_op = crypto_op.l3_op;
+        auto cipher = crypto_op.kv_response;
+        spdlog::debug("decrypting value. len={}", cipher.size());
+        auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
+
+        if (l3_op.value != "") {
+          plaintext = l3_op.value;
+        }
+
+        spdlog::debug("encrypting value. len={}", plaintext.size());
+        auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
+
+        auto ack_iface = ack_iface_;
+        auto ack_delivery = ack_delivery_;
+
+        // Send PUT to KV
+        l3_op.plaintext = plaintext;
+        storage_iface->async_put(l3_op.label, writeback_val, l3_op);
     }
 
-    spdlog::debug("encrypting value. len={}", plaintext.size());
-    auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
-
-    auto ack_iface = ack_iface_;
-    auto ack_delivery = ack_delivery_;
-
-    // Send PUT to KV
-    storage_iface->async_put(l3_op.label, writeback_val, [l3_op, fake_id, resp_queue, plaintext, ack_iface, ack_delivery]() {
-      spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
-      // Enqueue responses for real queries
-      if (l3_op.seq_id.client_id != fake_id) {
-        client_response resp;
-        resp.seq_id = l3_op.seq_id;
-        resp.result = (l3_op.is_read) ? plaintext : "";
-        resp.op_code = (l3_op.is_read) ? OP_GET : OP_PUT;
-
-        resp_queue->push(resp);
-      }
-
-      if(ack_delivery) {
-        ack_iface->send_ack(l3_op.seq_id);
-      }
-    });
+    storage_iface->flush();
   }
 }
 
