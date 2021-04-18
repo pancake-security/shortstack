@@ -230,8 +230,9 @@ int l1_main(int argc, char *argv[]) {
     std::string instance_name;
     bool no_all_false = false;
     bool stats = false;
+    int security_batch_size = 3;
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-    while ((o = getopt(argc, argv, "h:d:i:gc:fl")) != -1) {
+    while ((o = getopt(argc, argv, "h:d:i:gc:flb:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -253,6 +254,9 @@ int l1_main(int argc, char *argv[]) {
                 break;
             case 'l':
                 stats = true;
+                break;
+            case 'b':
+                security_batch_size = std::atoi(optarg);
                 break;
             default:
                 l1_usage();
@@ -293,6 +297,7 @@ int l1_main(int argc, char *argv[]) {
     {
         proxys[i] = std::make_shared<l1_proxy>();
         proxys[i]->init_proxy(hinfo, instance_name, dinfo, i, no_all_false, stats);
+        proxys[i]->security_batch_size_ = security_batch_size;
         proxy_servers[i] = l1_server::create(proxys[i], "l1", id_to_client, proxy_port + i, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }
