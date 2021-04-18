@@ -7,9 +7,10 @@
 void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
-                          int local_idx) {
+                          int local_idx, bool no_all_false) {
   hosts_ = hosts;
   instance_name_ = instance_name;
+  disable_all_false_ = no_all_false;
 
   num_keys_ = dist_info->num_keys_;
   dummy_key_ = dist_info->dummy_key_;
@@ -68,11 +69,23 @@ void l1_proxy::create_security_batch(std::queue<l1_operation> &q,
                                      std::vector<bool> &is_trues) {
 
   bool atleast_one_true = false;
+  std::vector<bool> coins;
+  for (int i = 0; i < security_batch_size_; i++) {
+    coins.push_back(is_true_distribution());
+    if(coins[i]) {
+      atleast_one_true = true;
+    }
+  }
+
+  if(disable_all_false_ && !atleast_one_true) {
+    coins[0] = true;
+    atleast_one_true = true;
+  }
+
   for (int i = 0; i < security_batch_size_; i++) {
     l2_operation operat;
-    if (is_true_distribution()) {
+    if (coins[i]) {
       // std::cerr << "True toss" << std::endl;
-      atleast_one_true = true;
       if (q.empty()) {
         operat.seq_id.client_id = fake_client_id_;
         operat.key = real_distribution_.sample();

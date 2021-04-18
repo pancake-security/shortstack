@@ -34,7 +34,8 @@ struct l1_operation {
 class l1_proxy : public proxy, public chain_module {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
-                  std::shared_ptr<distribution_info> dist_info, int local_idx);
+                  std::shared_ptr<distribution_info> dist_info, int local_idx,
+                  bool no_all_false);
   void init(const std::vector<std::string> &keys,
             const std::vector<std::string> &values, void **args) override;
   void close() override;
@@ -100,6 +101,7 @@ public:
 
   int security_batch_size_ = 3;
   bool is_static_ = true;
+  bool disable_all_false_ = false;
 
 private:
   void create_security_batch(std::queue<l1_operation> &queue,
