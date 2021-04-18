@@ -9,6 +9,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 #include "timer.h"
 #include "shortstack_client.h"
@@ -53,7 +54,8 @@ void load_trace(const std::string &trace_location, trace_vector &trace) {
 };
 
 void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int client_batch_size,
-                trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int queue_depth) {
+                trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int queue_depth,
+                std::vector<std::string> &diags) {
     int ops = 0;
     uint64_t start, end;
     auto ticks_per_ns = static_cast<double>(rdtscuhz()) / 1000;
@@ -92,8 +94,8 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
     }
 
     while (elapsed < run_time*1000000) {
-        std::string out;
-        auto seq = client.poll_responses(out);
+        std::string out, diag;
+        auto seq = client.poll_responses(out, diag);
         if(seq < smallest_seq) 
         {
             // Stale request
@@ -107,6 +109,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
             
             double cycles = static_cast<double>(end - start_ts[seq]);
             latencies.push_back((cycles / ticks_per_ns)/1000);
+            diags.push_back(diag);
         }
         ops += 1;
 
@@ -145,15 +148,17 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
 
 void warmup(std::vector<int> &latencies, int client_batch_size,
             trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
-    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd);
+                std::vector<std::string> dummy;
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy);
 }
 
 void cooldown(std::vector<int> &latencies, int client_batch_size,
                trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
-    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd);
+                   std::vector<std::string> dummy;
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy);
 }
 
-void client(int idx, int client_batch_size, trace_vector &trace, std::string output_directory, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies) {
+void client(int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies, std::vector<std::string> &diags) {
     shortstack_client client;
     client.init(idx, hinfo);
 
@@ -164,12 +169,12 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     std::cout << "Beginning warmup" << std::endl;
     warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
     std::cout << "Beginning benchmark" << std::endl;
-    run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
-    std::string location = output_directory + "/client" + std::to_string(idx)+ ".lat";
+    run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth, diags);
+    std::string location = output_path + "-client" + std::to_string(idx)+ ".lat";
     std::ofstream out(location);
     std::string line("");
-    for (auto lat : latencies) {
-        line.append(std::to_string(lat) + "\n");
+    for (int i = 0; i < latencies.size(); i++) {
+        line.append(std::to_string(latencies[i]) + "," + diags[i] + "\n");
         out << line;
         line.clear();
     }
@@ -214,7 +219,7 @@ int main(int argc, char *argv[]) {
     auto date_string = std::string(std::ctime(&end_time));
     date_string = date_string.substr(0, date_string.rfind(":"));
     date_string.erase(remove(date_string.begin(), date_string.end(), ' '), date_string.end());
-    std::string output_directory = "data/"+date_string;
+    std::string output_prefix = "foo";
 
     int o;
     std::string hosts_file;
@@ -231,7 +236,7 @@ int main(int argc, char *argv[]) {
                 num_clients = std::atoi(optarg);
                 break;
             case 'o':
-                output_directory = std::string(optarg);
+                output_prefix = std::string(optarg);
                 break;
             case 'q':
                 queue_depth = std::atoi(optarg);
@@ -245,6 +250,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    std::string output_path = "data/" + output_prefix;
+
     if(debug_mode) {
         spdlog::set_level(spdlog::level::debug);
     }
@@ -255,7 +262,9 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    _mkdir((output_directory).c_str());
+    // _mkdir((output_directory).c_str());
+    std::string rm_cmdline = "rm " + output_path + "*";
+    system(rm_cmdline.c_str());
     std::atomic<int> xput;
     std::atomic_init(&xput, 0);
 
@@ -269,17 +278,21 @@ int main(int argc, char *argv[]) {
     int64_t base_client_id = distrib(gen);
 
     std::vector<std::vector<int>> client_lats;
+    std::vector<std::vector<std::string>> client_diags;
     for(int i = 0; i < num_clients; i++) 
     {
         std::vector<int> lats;
         client_lats.push_back(lats);
+        std::vector<std::string> d;
+        client_diags.push_back(d);
     }
 
 
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
         threads.push_back(std::thread(client, base_client_id + i, client_batch_size, std::ref(trace),
-                          output_directory, hinfo, std::ref(xput), queue_depth, std::ref(client_lats[i])));
+                          output_path, hinfo, std::ref(xput), queue_depth, std::ref(client_lats[i]),
+                          std::ref(client_diags[i])));
     }
     for (int i = 0; i < num_clients; i++)
         threads[i].join();

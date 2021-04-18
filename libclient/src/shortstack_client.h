@@ -28,6 +28,7 @@ using namespace apache::thrift::transport;
 struct l3_response {
     int64_t sequence_num;
     std::string value;
+    std::string diag;
 };
 
 // WARNING: Not thread-safe
@@ -41,7 +42,7 @@ public:
     int64_t get_client_id();
     int64_t get(const std::string &key);
     int64_t put(const std::string &key, const std::string &value);
-    int64_t poll_responses(std::string &out);
+    int64_t poll_responses(std::string &out, std::string &diag);
     // std::vector<std::string> get_batch(const std::vector<std::string> &keys) override;
     // void put_batch(const std::vector<std::string> &keys, const std::vector<std::string> &values) override;
     void finish();

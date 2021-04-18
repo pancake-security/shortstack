@@ -27,6 +27,9 @@ int64_t command_response_reader::recv_response(std::vector<std::string> &out) {
   this->iprot_->getTransport()->readEnd();
   if (result.__isset.seq_id && result.__isset.result) {
     out = result.result;
+    if(result.seq_id.__isset.diag) {
+        out.push_back(result.seq_id.diag);
+    }
     return result.seq_id.client_seq_no;
   }
 }

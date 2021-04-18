@@ -35,7 +35,7 @@ class l1_proxy : public proxy, public chain_module {
 public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   std::shared_ptr<distribution_info> dist_info, int local_idx,
-                  bool no_all_false);
+                  bool no_all_false, bool stats);
   void init(const std::vector<std::string> &keys,
             const std::vector<std::string> &values, void **args) override;
   void close() override;
@@ -134,6 +134,8 @@ private:
   const int64_t fake_client_id_ = -1995;
   int idx_;
   std::shared_ptr<host_info> hosts_{nullptr};
+
+  bool stats_;
 
   libcuckoo::cuckoohash_map<int64_t, int> pending_count_;
 

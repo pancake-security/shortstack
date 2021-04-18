@@ -1,16 +1,18 @@
 // Shortstack L1 proxy implementation
 
 #include <spdlog/spdlog.h>
+#include "chrono"
 
 #include "l1_proxy.h"
 
 void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
-                          int local_idx, bool no_all_false) {
+                          int local_idx, bool no_all_false, bool stats) {
   hosts_ = hosts;
   instance_name_ = instance_name;
   disable_all_false_ = no_all_false;
+  stats_ = stats;
 
   num_keys_ = dist_info->num_keys_;
   dummy_key_ = dist_info->dummy_key_;
@@ -220,6 +222,8 @@ void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args
     idx += count;
   }
 
+  spdlog::debug("dserialized batch");
+
   if(batch.size() != security_batch_size_) {
     throw std::logic_error("Incorrectly sized security batch");
   }
@@ -233,6 +237,11 @@ void l1_proxy::replication_complete(const sequence_id &seq, const arg_list &args
       l2_operation &op = batch[i];
       op.seq_id.l1_idx = idx_;
       op.seq_id.l1_seq_no = security_batch_size_*seq.server_seq_no + i;
+      if(stats_) {
+        int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        auto elapsed = us_from_epoch - op.seq_id.ts;
+        op.seq_id.__set_diag(op.seq_id.diag + std::to_string(elapsed) + ",");
+      }
       l2_iface_->send_op(op);
     }
 }
@@ -315,12 +324,19 @@ void l1_proxy::async_put_batch(const sequence_id &seq_id, int queue_id,
 //   }
 // }
 
-void l1_proxy::process_op(const l1_operation &op) {
+void l1_proxy::process_op(const l1_operation &inp_op) {
+  l1_operation op = inp_op;
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
   if(!is_head()) {
     spdlog::error("Received direct request at non-head node");
     return;
   }
+
+  if(stats_) {
+    int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    op.seq_id.__set_ts(us_from_epoch);
+  } 
+
     // Generate batch
     internal_queue_.push(op);
     std::vector<l2_operation> batch;

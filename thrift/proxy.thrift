@@ -6,6 +6,8 @@ struct sequence_id {
   5: required i64 l1_seq_no,
   6: required i32 l2_idx,
   7: required i64 l2_seq_no,
+  8: optional i64 ts,
+  9: optional string diag,
 }
 
 service block_request_service {
