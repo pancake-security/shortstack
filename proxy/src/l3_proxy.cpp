@@ -53,16 +53,24 @@ void l3_proxy::init_proxy(
   cpp_redis::network::set_default_nb_workers(kvclient_threads);
 
   auto crypto_queue = crypto_queue_;
-  redis_interface::get_callback get_cb = [crypto_queue](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
+  auto stats_enbl = stats_;
+  redis_interface::get_callback get_cb = [crypto_queue, stats_enbl](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
       crypto_op_batch batch;
       for(int i = 0; i < ops.size(); i++) 
       {
         const l3_operation &op = ops[i];
         spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+
         // Enqueue task for crypto thread
         crypto_operation crypto_op;
         crypto_op.l3_op = op;
         crypto_op.kv_response = vals[i];
+        if(stats_enbl) {
+          int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+          auto elapsed = us_from_epoch - crypto_op.l3_op.seq_id.ts;
+          crypto_op.l3_op.seq_id.__set_diag(crypto_op.l3_op.seq_id.diag + std::to_string(elapsed) + ",");
+          crypto_op.l3_op.seq_id.ts = us_from_epoch;
+        }
         batch.push_back(crypto_op);
       }
 
@@ -78,7 +86,7 @@ void l3_proxy::init_proxy(
   auto ack_iface = ack_iface_;
   auto ack_del = ack_delivery_;
 
-  redis_interface::put_callback put_cb = [fake_id, resp_queue, ack_iface, ack_del](const std::vector<l3_operation> &ops) {
+  redis_interface::put_callback put_cb = [fake_id, resp_queue, ack_iface, ack_del, stats_enbl](const std::vector<l3_operation> &ops) {
       for(int i = 0; i < ops.size(); i++) {
         const l3_operation &l3_op = ops[i];
         spdlog::debug("recvd KV PUT response client_id:{}, seq_no:{}", l3_op.seq_id.client_id, l3_op.seq_id.client_seq_no);
@@ -88,6 +96,13 @@ void l3_proxy::init_proxy(
           resp.seq_id = l3_op.seq_id;
           resp.result = (l3_op.is_read) ? l3_op.plaintext : "";
           resp.op_code = (l3_op.is_read) ? OP_GET : OP_PUT;
+
+          if(stats_enbl) {
+            int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            auto elapsed = us_from_epoch - resp.seq_id.ts;
+            resp.seq_id.__set_diag(resp.seq_id.diag + std::to_string(elapsed) + ",");
+            resp.seq_id.ts = us_from_epoch;
+          }
 
           // TODO: Even this can be batched
           resp_queue->push(resp);
@@ -239,8 +254,18 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
     for(auto &crypto_op : batch) {
         spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
 
+       
+
         auto l3_op = crypto_op.l3_op;
         auto cipher = crypto_op.kv_response;
+
+        if(stats_) {
+          int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+          auto elapsed = us_from_epoch - l3_op.seq_id.ts;
+          l3_op.seq_id.__set_diag(l3_op.seq_id.diag + std::to_string(elapsed) + ",");
+          l3_op.seq_id.ts = us_from_epoch;
+        }  
+
         spdlog::debug("decrypting value. len={}", cipher.size());
         auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
 
@@ -250,6 +275,13 @@ void l3_proxy::crypto_thread(encryption_engine *enc_engine) {
 
         spdlog::debug("encrypting value. len={}", plaintext.size());
         auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
+
+        if(stats_) {
+          int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+          auto elapsed = us_from_epoch - l3_op.seq_id.ts;
+          l3_op.seq_id.__set_diag(l3_op.seq_id.diag + std::to_string(elapsed) + ",");
+          l3_op.seq_id.ts = us_from_epoch;
+        }
 
         auto ack_iface = ack_iface_;
         auto ack_delivery = ack_delivery_;
@@ -275,6 +307,7 @@ void l3_proxy::responder_thread(){
           int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
           auto elapsed = us_from_epoch - resp.seq_id.ts;
           resp.seq_id.__set_diag(resp.seq_id.diag + std::to_string(elapsed) + ",");
+          resp.seq_id.ts - us_from_epoch;
         }
         id_to_client_->async_respond_client(resp.seq_id, resp.op_code, results);
     }
