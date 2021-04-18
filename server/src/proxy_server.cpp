@@ -228,8 +228,9 @@ int l1_main(int argc, char *argv[]) {
     std::string hosts_file;
     std::string dist_file;
     std::string instance_name;
+    bool no_all_false = false;
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
-    while ((o = getopt(argc, argv, "h:d:i:gc:")) != -1) {
+    while ((o = getopt(argc, argv, "h:d:i:gc:f")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -245,6 +246,9 @@ int l1_main(int argc, char *argv[]) {
                 break;
             case 'c':
                 num_cores = std::atoi(optarg);
+                break;
+            case 'f':
+                no_all_false = true;
                 break;
             default:
                 l1_usage();
@@ -284,7 +288,7 @@ int l1_main(int argc, char *argv[]) {
     for(int i = 0; i < num_workers; i++) 
     {
         proxys[i] = std::make_shared<l1_proxy>();
-        proxys[i]->init_proxy(hinfo, instance_name, dinfo, i);
+        proxys[i]->init_proxy(hinfo, instance_name, dinfo, i, no_all_false);
         proxy_servers[i] = l1_server::create(proxys[i], "l1", id_to_client, proxy_port + i, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }
