@@ -519,7 +519,13 @@ int l3_main(int argc, char *argv[]) {
     }
 
     std::cout << "Proxy server is reachable" << std::endl;
-    sleep(10000);
+    while(true) {
+        for(int i = 0; i < num_workers; i++) {
+            proxys[i]->log_stats();
+        }
+    sleep(2000);
+    }
+    // sleep(10000);
 
     return 0;
 

@@ -23,6 +23,8 @@ void l3_proxy::init_proxy(
   stats_ = stats;
   ack_batch_size_ = ack_batch_size;
 
+  req_cnt_ = 0;
+
   id_to_client_ = client_map;
 
   host this_host;
@@ -176,6 +178,8 @@ void l3_proxy::async_operation(const sequence_id &seq_id,
   last_seen_seq_[op.seq_id.l2_idx] = std::max(last_seen_seq_[op.seq_id.l2_idx], op.seq_id.l2_seq_no);
 
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
+
+  req_cnt_ += 1;
 
   if(stats_) {
     int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -345,4 +349,8 @@ void l3_proxy::update_connections(int type, int column, std::string hostname, in
   ack_iface_->update_connections(column, hostname, port, num_workers);
 
   spdlog::info("Updated L2 ack connection for column: {}", column);
+}
+
+void l3_proxy::log_stats() {
+  std::cout << "Req cnt: " << req_cnt_ << std::endl;
 }
