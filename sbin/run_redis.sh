@@ -10,7 +10,7 @@ shift;
 
 kv_hosts=($(cat $hosts_csv | awk '$2 == "KV" { print $3 }'))
 kv_instances=($(cat $hosts_csv | awk '$2 == "KV" { print $1 }'))
-kv_cores=($(cat $hosts_csv | awk '$2 == "KV" { print $5 }'))
+kv_cores=($(cat $hosts_csv | awk '$2 == "KV" { print $8 }'))
 kv_ports=($(cat $hosts_csv | awk '$2 == "KV" { print $4 }'))
 
 for i in "${!kv_hosts[@]}"; do 
