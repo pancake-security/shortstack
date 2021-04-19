@@ -94,3 +94,7 @@ void thrift_handler::update_connections(const int32_t type, const int32_t column
 void thrift_handler::external_ack(const sequence_id& seq) {
     throw std::runtime_error("Not implemented");
 }
+
+void thrift_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {
+    throw std::runtime_error("Not implemented");
+}

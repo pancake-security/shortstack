@@ -50,6 +50,10 @@ void l3_handler::external_ack(const sequence_id& seq) {
   throw std::logic_error("Not implemented"); 
 }
 
+void l3_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {
+  throw std::logic_error("Not implemented");
+}
+
 int64_t l3_handler::get_client_id() {
   return client_id_gen_.fetch_add(1L);
 }

@@ -17,6 +17,8 @@ service block_request_service {
   // External ack
   oneway void external_ack(1: sequence_id seq),
 
+  oneway void external_ack_batch(1: list<sequence_id> seqs),
+
   // Management
   void setup_chain(1: i32 block_id, 2: string path, 6: list<string> chain, 7: i32 chain_role, 8: string next_block_id),
   void resend_pending(1: i32 block_id),

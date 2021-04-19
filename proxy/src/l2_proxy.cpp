@@ -10,11 +10,13 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
                           std::shared_ptr<update_cache> update_cache,
-                          bool uc_enabled, int local_idx, bool stats) {
+                          bool uc_enabled, int local_idx, bool stats,
+                          int ack_batch_size) {
   hosts_ = hosts;
   instance_name_ = instance_name;
   update_cache_enabled_ = uc_enabled;
   stats_ = stats;
+  ack_batch_size_ = ack_batch_size;
 
   replica_to_label_ = dist_info->replica_to_label_;
   key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;
@@ -179,7 +181,7 @@ void l2_proxy::setup_callback() {
   }
 
   if(is_head() && ack_iface_ == nullptr) {
-    ack_iface_ = std::make_shared<l1ack_interface>(hosts_);
+    ack_iface_ = std::make_shared<l1ack_interface>(hosts_, ack_batch_size_);
     spdlog::info("Worker {}: L1 ack interface initialized", idx_);
   }
   
@@ -313,8 +315,14 @@ void l2_proxy::external_ack(const sequence_id& seq) {
   ack(seq_id);
 }
 
-l1ack_interface::l1ack_interface(std::shared_ptr<host_info> hosts)
-: reverse_connector(hosts, HOST_TYPE_L1) {
+void l2_proxy::external_ack_batch(const std::vector<sequence_id> & seqs) {
+  for(auto & seq : seqs) {
+    external_ack(seq);
+  }
+}
+
+l1ack_interface::l1ack_interface(std::shared_ptr<host_info> hosts, int batch_size)
+: reverse_connector(hosts, HOST_TYPE_L1, batch_size) {
 
 }
 

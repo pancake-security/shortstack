@@ -4,6 +4,7 @@
 #define REVERSE_CONNECTOR_H
 
 #include <string>
+#include <queue>
 
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TBufferTransports.h>
@@ -28,7 +29,7 @@ public:
   typedef std::vector<std::shared_ptr<TProtocol>> prot_list;
   typedef std::vector<std::shared_ptr<block_request_serviceClient>> client_list;
 
-  reverse_connector(std::shared_ptr<host_info> hinfo, int type);
+  reverse_connector(std::shared_ptr<host_info> hinfo, int type, int batch_size);
 
   void send_ack(const sequence_id &seq);
 
@@ -49,6 +50,10 @@ void recompute_client_array();
 
   int type_;  
   client_list client_arr_;
+
+   std::vector<std::queue<sequence_id>> ack_queues_;
+
+   int batch_size_{1};
 };
 
 #endif // REVERSE_CONNECTOR_H

@@ -95,6 +95,9 @@ public:
 
   void external_ack(const sequence_id& seq);
 
+  void external_ack_batch(const std::vector<sequence_id> & seqs);
+  
+
   std::string output_location_ = "log";
   std::string trace_location_ = "";
   std::string instance_name_ = "";
