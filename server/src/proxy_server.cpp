@@ -23,6 +23,7 @@
 #include "thrift_utils.h"
 #include "proxy_manager.h"
 #include "update_cache.h"
+#include "consistent_hash.h"
 #include <cpp_redis/cpp_redis>
 
 #define HOST "127.0.0.1"
@@ -686,29 +687,45 @@ int manager_main(int argc, char *argv[]) {
 }
 
 int redisdbg_main(int argc, char *argv[]) {
-    cpp_redis::network::set_default_nb_workers(1);
+    // cpp_redis::network::set_default_nb_workers(1);
 
-    auto client = std::make_shared<cpp_redis::client>();
+    // auto client = std::make_shared<cpp_redis::client>();
 
-    client->connect();
+    // client->connect();
 
-    client->set("abc", "hello", [](cpp_redis::reply& reply) {
-        std::cout << "SET complete" << std::endl;
-    });
+    // client->set("abc", "hello", [](cpp_redis::reply& reply) {
+    //     std::cout << "SET complete" << std::endl;
+    // });
 
-    client->commit();
+    // client->commit();
 
-    std::vector<std::pair<std::string, std::string>> kvs;
-    kvs.push_back(std::make_pair("abc", "bye"));
-    kvs.push_back(std::make_pair("def", "gghg"));
+    // std::vector<std::pair<std::string, std::string>> kvs;
+    // kvs.push_back(std::make_pair("abc", "bye"));
+    // kvs.push_back(std::make_pair("def", "gghg"));
 
-    client->mset(kvs, [](cpp_redis::reply& reply) {
-        std::cout << "MSET complete" << std::endl;
-    });    
+    // client->mset(kvs, [](cpp_redis::reply& reply) {
+    //     std::cout << "MSET complete" << std::endl;
+    // });    
 
-    client->commit();
+    // client->commit();
 
-    sleep(10);
+    // sleep(10);
+
+    int count[8];
+    for(int i = 0; i < 8; i++) 
+    {
+        count[i] = 0;
+    }
+    for(int i = 0; i < 20000; i++) {
+        auto id = consistent_hash(std::to_string(i), 8);
+        count[id] += 1;
+    }
+
+    for(int i = 0; i < 8 ; i++)
+    {
+        std::cout << count[i] << std::endl;
+    }
+
 
 }
 
