@@ -523,7 +523,7 @@ int l3_main(int argc, char *argv[]) {
         for(int i = 0; i < num_workers; i++) {
             proxys[i]->log_stats();
         }
-    sleep(2000);
+        sleep(2);
     }
     // sleep(10000);
 
