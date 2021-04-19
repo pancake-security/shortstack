@@ -48,28 +48,28 @@ idx += num_clients
 for i in range(num_kv_servers):
     core_idx = 0
     for j in range(num_kv_per_server):
-        f.write('kv_%d_%d KV %s %d %s\n' % (i, j, servers[idx], kv_base_port + j, ','.join(cores[core_idx:core_idx+num_kv_cores])))
+        f.write('kv_%d_%d KV %s %d 0 %d 1 %s\n' % (i, j, servers[idx], kv_base_port + j, i*num_kv_per_server + j, ','.join(cores[core_idx:core_idx+num_kv_cores])))
         core_idx += num_kv_cores
     idx += 1
 
 for i in range(num_l1_servers):
     core_idx = 0
     for j in range(num_l1_per_server):
-        f.write('l1_%d_%d L1 %s %d %s\n' % (i, j, servers[idx], l1_base_port + j, ','.join(cores[core_idx:core_idx+num_l1_cores])))
+        f.write('l1_%d_%d L1 %s %d 0 %d 1 %s\n' % (i, j, servers[idx], l1_base_port + j, i*num_l1_per_server + j, ','.join(cores[core_idx:core_idx+num_l1_cores])))
         core_idx += num_l1_cores
     idx += 1
 
 for i in range(num_l2_servers):
     core_idx = 0
     for j in range(num_l2_per_server):
-        f.write('l2_%d_%d L2 %s %d %s\n' % (i, j, servers[idx], l2_base_port + j, ','.join(cores[core_idx:core_idx+num_l2_cores])))
+        f.write('l2_%d_%d L2 %s %d 0 %d 1 %s\n' % (i, j, servers[idx], l2_base_port + j, i*num_l2_per_server + j, ','.join(cores[core_idx:core_idx+num_l2_cores])))
         core_idx += num_l2_cores
     idx += 1
 
 for i in range(num_l3_servers):
     core_idx = 0
     for j in range(num_l3_per_server):
-        f.write('l3_%d_%d L3 %s %d %s\n' % (i, j, servers[idx], l3_base_port + j, ','.join(cores[core_idx:core_idx+num_l3_cores])))
+        f.write('l3_%d_%d L3 %s %d 0 %d 1 %s\n' % (i, j, servers[idx], l3_base_port + j, i*num_l3_per_server + j, ','.join(cores[core_idx:core_idx+num_l3_cores])))
         core_idx += num_l3_cores
     idx += 1
 
