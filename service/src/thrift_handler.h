@@ -62,6 +62,8 @@ public:
 
     void external_ack(const sequence_id& seq);
 
+    void external_ack_batch(const std::vector<sequence_id> & seqs);
+
 private:
     int operation_count_ = 0;
     std::shared_ptr<proxy> proxy_;

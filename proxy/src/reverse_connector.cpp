@@ -1,3 +1,6 @@
+
+#include <spdlog/spdlog.h>
+
 #include "reverse_connector.h"
 
 #include "MurmurHash2.h"
@@ -5,9 +8,11 @@
 #include "util.h"
 
 reverse_connector::reverse_connector(std::shared_ptr<host_info> hinfo,
-                                     int type) {
+                                     int type,
+                                     int batch_size) {
   hosts_ = hinfo;
   type_ = type;
+  batch_size_= batch_size;
 
   int num_cols = hosts_->get_num_columns(type, false);
 
@@ -44,11 +49,15 @@ reverse_connector::reverse_connector(std::shared_ptr<host_info> hinfo,
 void reverse_connector::recompute_client_array() {
     client_arr_.clear();
 
+    ack_queues_.clear(); // We may end up dropping acks here upon failure
+
     for(int i = 0; i < clients_.size(); i++) 
     {
         for(int j = 0; j < clients_[i].size(); j++) 
         {
             client_arr_.push_back(clients_[i][j]);
+            std::queue<sequence_id> q;
+            ack_queues_.push_back(q);
         }
     }
 }
@@ -62,7 +71,20 @@ void reverse_connector::send_ack(const sequence_id &seq) {
         throw std::runtime_error("connection to id uninitialized");
     }
 
-    client_arr_[id]->external_ack(seq);
+    ack_queues_[id].push(seq);
+
+    if(ack_queues_[id].size() >= batch_size_) {
+      spdlog::debug("Flushing ack queue, idx: {}", id);
+
+      std::vector<sequence_id> batch;
+      while(!ack_queues_[id].empty()) 
+      {
+          batch.push_back(ack_queues_[id].front());
+          ack_queues_[id].pop();
+      }
+
+      client_arr_[id]->external_ack_batch(batch);
+    }
 }
 
 

@@ -44,3 +44,6 @@ void l2_handler::selective_resend_pending(const int32_t column, const int32_t nu
 void l2_handler::external_ack(const sequence_id& seq) {
     proxy_->external_ack(seq);
 }
+void l2_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {
+    proxy_->external_ack_batch(seqs);
+}

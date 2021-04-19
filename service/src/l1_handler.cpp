@@ -95,3 +95,7 @@ void l1_handler::update_connections(const int32_t type, const int32_t column, co
 void l1_handler::external_ack(const sequence_id& seq){
     proxy_->external_ack(seq);
 }
+
+void l1_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {
+    proxy_->external_ack_batch(seqs);
+}

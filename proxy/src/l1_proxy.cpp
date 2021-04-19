@@ -400,3 +400,9 @@ void l1_proxy::external_ack(const sequence_id& seq) {
     ack(seq_no);
   }
 }
+
+void l1_proxy::external_ack_batch(const std::vector<sequence_id> & seqs) {
+  for(auto & seq : seqs) {
+    external_ack(seq);
+  }
+}

@@ -10,7 +10,7 @@ void l3_proxy::init_proxy(
     std::shared_ptr<thrift_response_client_map> client_map,
     bool encryption_enabled, bool resp_delivery,
     bool kv_interaction, int local_idx, int64_t timeout_us, bool ack_delivery,
-    bool stats) {
+    bool stats, int ack_batch_size) {
 
   hosts_ = hosts;
   instance_name_ = instance_name;
@@ -21,6 +21,7 @@ void l3_proxy::init_proxy(
   timeout_us_ = timeout_us;
   ack_delivery_ = ack_delivery;
   stats_ = stats;
+  ack_batch_size_ = ack_batch_size;
 
   id_to_client_ = client_map;
 
@@ -46,7 +47,7 @@ void l3_proxy::init_proxy(
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
-  ack_iface_ = std::make_shared<l2ack_interface>(hosts_);
+  ack_iface_ = std::make_shared<l2ack_interface>(hosts_, ack_batch_size_);
 
   spdlog::info("Worker {}: Ack interface initialized", idx_);
 
@@ -325,8 +326,8 @@ void l3_proxy::close() {
   // TODO: Join responder thread
 }
 
-l2ack_interface::l2ack_interface(std::shared_ptr<host_info> hosts)
-: reverse_connector(hosts, HOST_TYPE_L2) {
+l2ack_interface::l2ack_interface(std::shared_ptr<host_info> hosts, int batch_size)
+: reverse_connector(hosts, HOST_TYPE_L2, batch_size) {
 
 }
 

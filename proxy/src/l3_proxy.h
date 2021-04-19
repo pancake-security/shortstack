@@ -50,7 +50,7 @@ const int OP_PUT = 1;
 
 class l2ack_interface : public reverse_connector {
   public:
-    l2ack_interface(std::shared_ptr<host_info> hosts);
+    l2ack_interface(std::shared_ptr<host_info> hosts, int batch_size);
     int route(const sequence_id &seq) override;
 };
 
@@ -61,7 +61,8 @@ public:
                   std::shared_ptr<thrift_response_client_map> client_map,
                   bool encryption_enabled, bool resp_delivery,
                   bool kv_interaction, int local_idx,
-                  int64_t timeout_us, bool ack_delivery, bool stats);
+                  int64_t timeout_us, bool ack_delivery, bool stats,
+                  int ack_batch_size);
 
   void async_operation(const sequence_id &seq_id, const std::string &label,
                        const std::string &value, bool is_read, bool dedup);
@@ -120,6 +121,8 @@ private:
   int64_t timeout_us_;
 
   bool stats_;
+
+  int ack_batch_size_;
 };
 
 #endif // L3_PROXY_H

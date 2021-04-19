@@ -28,7 +28,7 @@
 
 class l1ack_interface : public reverse_connector {
   public:
-    l1ack_interface(std::shared_ptr<host_info> hosts);
+    l1ack_interface(std::shared_ptr<host_info> hosts, int batch_size);
     int route(const sequence_id &seq) override;
 };
 
@@ -37,7 +37,8 @@ public:
   void init_proxy(std::shared_ptr<host_info> hosts, std::string instance_name,
                   std::shared_ptr<distribution_info> dist_info,
                   std::shared_ptr<update_cache> update_cache,
-                  bool uc_enabled, int local_idx, bool stats);
+                  bool uc_enabled, int local_idx, bool stats,
+                  int ack_batch_size);
 
   void async_operation(const sequence_id &seq_id, const std::string &key,
                        int replica, const std::string &value);
@@ -54,6 +55,8 @@ public:
   void selective_resend_pending(const int32_t column, const int32_t num_columns);
 
   void external_ack(const sequence_id& seq);
+
+  void external_ack_batch(const std::vector<sequence_id> & seqs);
 
 private:
   // void consumer_thread(int id);
@@ -91,6 +94,8 @@ private:
 
   std::shared_ptr<l1ack_interface> ack_iface_{nullptr};
   bool stats_;
+
+  int ack_batch_size_{1};
 
 };
 
