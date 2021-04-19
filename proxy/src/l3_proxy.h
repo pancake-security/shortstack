@@ -71,6 +71,8 @@ public:
 
   void update_connections(int type, int column, std::string hostname, int port, int num_workers);
 
+  void log_stats();
+
 private:
   void consumer_thread();
   void crypto_thread(encryption_engine *enc_engine);
@@ -123,6 +125,8 @@ private:
   bool stats_;
 
   int ack_batch_size_;
+
+  int req_cnt_{0};
 };
 
 #endif // L3_PROXY_H
