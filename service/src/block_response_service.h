@@ -22,6 +22,7 @@ class block_response_serviceIf {
  public:
   virtual ~block_response_serviceIf() {}
   virtual void chain_ack(const sequence_id& seq) = 0;
+  virtual void chain_ack_batch(const std::vector<sequence_id> & seqs) = 0;
 };
 
 class block_response_serviceIfFactory {
@@ -52,6 +53,9 @@ class block_response_serviceNull : virtual public block_response_serviceIf {
  public:
   virtual ~block_response_serviceNull() {}
   void chain_ack(const sequence_id& /* seq */) {
+    return;
+  }
+  void chain_ack_batch(const std::vector<sequence_id> & /* seqs */) {
     return;
   }
 };
@@ -105,6 +109,55 @@ class block_response_service_chain_ack_pargs {
 
 };
 
+typedef struct _block_response_service_chain_ack_batch_args__isset {
+  _block_response_service_chain_ack_batch_args__isset() : seqs(false) {}
+  bool seqs :1;
+} _block_response_service_chain_ack_batch_args__isset;
+
+class block_response_service_chain_ack_batch_args {
+ public:
+
+  block_response_service_chain_ack_batch_args(const block_response_service_chain_ack_batch_args&);
+  block_response_service_chain_ack_batch_args& operator=(const block_response_service_chain_ack_batch_args&);
+  block_response_service_chain_ack_batch_args() {
+  }
+
+  virtual ~block_response_service_chain_ack_batch_args() throw();
+  std::vector<sequence_id>  seqs;
+
+  _block_response_service_chain_ack_batch_args__isset __isset;
+
+  void __set_seqs(const std::vector<sequence_id> & val);
+
+  bool operator == (const block_response_service_chain_ack_batch_args & rhs) const
+  {
+    if (!(seqs == rhs.seqs))
+      return false;
+    return true;
+  }
+  bool operator != (const block_response_service_chain_ack_batch_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_response_service_chain_ack_batch_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_response_service_chain_ack_batch_pargs {
+ public:
+
+
+  virtual ~block_response_service_chain_ack_batch_pargs() throw();
+  const std::vector<sequence_id> * seqs;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
 class block_response_serviceClient : virtual public block_response_serviceIf {
  public:
   block_response_serviceClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -132,6 +185,8 @@ class block_response_serviceClient : virtual public block_response_serviceIf {
   }
   void chain_ack(const sequence_id& seq);
   void send_chain_ack(const sequence_id& seq);
+  void chain_ack_batch(const std::vector<sequence_id> & seqs);
+  void send_chain_ack_batch(const std::vector<sequence_id> & seqs);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -148,10 +203,12 @@ class block_response_serviceProcessor : public ::apache::thrift::TDispatchProces
   typedef std::map<std::string, ProcessFunction> ProcessMap;
   ProcessMap processMap_;
   void process_chain_ack(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_chain_ack_batch(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   block_response_serviceProcessor(::apache::thrift::stdcxx::shared_ptr<block_response_serviceIf> iface) :
     iface_(iface) {
     processMap_["chain_ack"] = &block_response_serviceProcessor::process_chain_ack;
+    processMap_["chain_ack_batch"] = &block_response_serviceProcessor::process_chain_ack_batch;
   }
 
   virtual ~block_response_serviceProcessor() {}
@@ -189,6 +246,15 @@ class block_response_serviceMultiface : virtual public block_response_serviceIf 
     ifaces_[i]->chain_ack(seq);
   }
 
+  void chain_ack_batch(const std::vector<sequence_id> & seqs) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->chain_ack_batch(seqs);
+    }
+    ifaces_[i]->chain_ack_batch(seqs);
+  }
+
 };
 
 // The 'concurrent' client is a thread safe client that correctly handles
@@ -221,6 +287,8 @@ class block_response_serviceConcurrentClient : virtual public block_response_ser
   }
   void chain_ack(const sequence_id& seq);
   void send_chain_ack(const sequence_id& seq);
+  void chain_ack_batch(const std::vector<sequence_id> & seqs);
+  void send_chain_ack_batch(const std::vector<sequence_id> & seqs);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;

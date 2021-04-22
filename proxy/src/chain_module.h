@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <queue>
 #include <libcuckoo/cuckoohash_map.hh>
 #include <shared_mutex>
 #include "block_response_service.h"
@@ -140,6 +141,10 @@ class prev_chain_module_cxn {
     client_.ack(seq);
   }
 
+  void ack_batch(const std::vector<sequence_id>& seqs) {
+    client_.ack_batch(seqs);
+  }
+
   /**
    * @brief Check if chain response client is set
    * @return Bool value, true if set
@@ -178,6 +183,10 @@ class chain_module {
       module_->ack(seq);
     }
 
+    void chain_ack_batch(const std::vector<sequence_id> & seqs) override {
+      module_->ack_batch(seqs);
+    }
+
    private:
     /* Chain module */
     chain_module *module_;
@@ -207,6 +216,8 @@ class chain_module {
                      const std::vector<std::string> &chain,
                      chain_role role,
                      const std::string &next_block_id);
+
+  void set_ack_batch_size(int batch_size);
 
   /**
    * @brief Set chain module role
@@ -343,6 +354,8 @@ virtual void ack_callback(const sequence_id &seq) = 0;
    */
   void ack(const sequence_id &seq);
 
+  void ack_batch(const std::vector<sequence_id> & seqs);
+
  protected:
   /* Role of chain module */
   chain_role role_{singleton};
@@ -360,6 +373,9 @@ virtual void ack_callback(const sequence_id &seq) = 0;
   libcuckoo::cuckoohash_map<int64_t, chain_op> pending_;
   /* Initialized bit */
   bool initialized_{false};
+
+  int chain_ack_batch_size_{1};
+  std::queue<sequence_id> ack_queue_;
 };
 
 

@@ -16,3 +16,7 @@ bool chain_response_client::is_set() const {
 void chain_response_client::ack(const sequence_id &seq) {
   client_->chain_ack(seq);
 }
+
+void chain_response_client::ack_batch(const std::vector<sequence_id> & seqs) {
+  client_->chain_ack_batch(seqs);
+}

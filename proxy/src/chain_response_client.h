@@ -39,6 +39,9 @@ class chain_response_client {
    */
 
   void ack(const sequence_id &seq);
+
+  void ack_batch(const std::vector<sequence_id> & seqs);
+
  private:
   /* Chain response service client */
   std::unique_ptr<thrift_client> client_{};
