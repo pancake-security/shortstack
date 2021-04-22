@@ -3,3 +3,5 @@
 killall proxy_server
 sleep 2;
 killall -9 proxy_server
+
+sudo /local/deploy/wondershaper/wondershaper -a ens5 -c
