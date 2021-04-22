@@ -8,11 +8,14 @@
 void l1_proxy::init_proxy(std::shared_ptr<host_info> hosts,
                           std::string instance_name,
                           std::shared_ptr<distribution_info> dist_info,
-                          int local_idx, bool no_all_false, bool stats) {
+                          int local_idx, bool no_all_false, bool stats,
+                          int ack_batch_size) {
   hosts_ = hosts;
   instance_name_ = instance_name;
   disable_all_false_ = no_all_false;
   stats_ = stats;
+
+  chain_ack_batch_size_ = ack_batch_size;
 
   num_keys_ = dist_info->num_keys_;
   dummy_key_ = dist_info->dummy_key_;

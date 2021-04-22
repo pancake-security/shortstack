@@ -87,6 +87,113 @@ uint32_t block_response_service_chain_ack_pargs::write(::apache::thrift::protoco
   return xfer;
 }
 
+
+block_response_service_chain_ack_batch_args::~block_response_service_chain_ack_batch_args() throw() {
+}
+
+
+uint32_t block_response_service_chain_ack_batch_args::read(::apache::thrift::protocol::TProtocol* iprot) {
+
+  ::apache::thrift::protocol::TInputRecursionTracker tracker(*iprot);
+  uint32_t xfer = 0;
+  std::string fname;
+  ::apache::thrift::protocol::TType ftype;
+  int16_t fid;
+
+  xfer += iprot->readStructBegin(fname);
+
+  using ::apache::thrift::protocol::TProtocolException;
+
+
+  while (true)
+  {
+    xfer += iprot->readFieldBegin(fname, ftype, fid);
+    if (ftype == ::apache::thrift::protocol::T_STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 2:
+        if (ftype == ::apache::thrift::protocol::T_LIST) {
+          {
+            this->seqs.clear();
+            uint32_t _size23;
+            ::apache::thrift::protocol::TType _etype26;
+            xfer += iprot->readListBegin(_etype26, _size23);
+            this->seqs.resize(_size23);
+            uint32_t _i27;
+            for (_i27 = 0; _i27 < _size23; ++_i27)
+            {
+              xfer += this->seqs[_i27].read(iprot);
+            }
+            xfer += iprot->readListEnd();
+          }
+          this->__isset.seqs = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      default:
+        xfer += iprot->skip(ftype);
+        break;
+    }
+    xfer += iprot->readFieldEnd();
+  }
+
+  xfer += iprot->readStructEnd();
+
+  return xfer;
+}
+
+uint32_t block_response_service_chain_ack_batch_args::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("block_response_service_chain_ack_batch_args");
+
+  xfer += oprot->writeFieldBegin("seqs", ::apache::thrift::protocol::T_LIST, 2);
+  {
+    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->seqs.size()));
+    std::vector<sequence_id> ::const_iterator _iter28;
+    for (_iter28 = this->seqs.begin(); _iter28 != this->seqs.end(); ++_iter28)
+    {
+      xfer += (*_iter28).write(oprot);
+    }
+    xfer += oprot->writeListEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
+
+block_response_service_chain_ack_batch_pargs::~block_response_service_chain_ack_batch_pargs() throw() {
+}
+
+
+uint32_t block_response_service_chain_ack_batch_pargs::write(::apache::thrift::protocol::TProtocol* oprot) const {
+  uint32_t xfer = 0;
+  ::apache::thrift::protocol::TOutputRecursionTracker tracker(*oprot);
+  xfer += oprot->writeStructBegin("block_response_service_chain_ack_batch_pargs");
+
+  xfer += oprot->writeFieldBegin("seqs", ::apache::thrift::protocol::T_LIST, 2);
+  {
+    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>((*(this->seqs)).size()));
+    std::vector<sequence_id> ::const_iterator _iter29;
+    for (_iter29 = (*(this->seqs)).begin(); _iter29 != (*(this->seqs)).end(); ++_iter29)
+    {
+      xfer += (*_iter29).write(oprot);
+    }
+    xfer += oprot->writeListEnd();
+  }
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldStop();
+  xfer += oprot->writeStructEnd();
+  return xfer;
+}
+
 void block_response_serviceClient::chain_ack(const sequence_id& seq)
 {
   send_chain_ack(seq);
@@ -99,6 +206,25 @@ void block_response_serviceClient::send_chain_ack(const sequence_id& seq)
 
   block_response_service_chain_ack_pargs args;
   args.seq = &seq;
+  args.write(oprot_);
+
+  oprot_->writeMessageEnd();
+  oprot_->getTransport()->writeEnd();
+  oprot_->getTransport()->flush();
+}
+
+void block_response_serviceClient::chain_ack_batch(const std::vector<sequence_id> & seqs)
+{
+  send_chain_ack_batch(seqs);
+}
+
+void block_response_serviceClient::send_chain_ack_batch(const std::vector<sequence_id> & seqs)
+{
+  int32_t cseqid = 0;
+  oprot_->writeMessageBegin("chain_ack_batch", ::apache::thrift::protocol::T_ONEWAY, cseqid);
+
+  block_response_service_chain_ack_batch_pargs args;
+  args.seqs = &seqs;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();
@@ -162,6 +288,43 @@ void block_response_serviceProcessor::process_chain_ack(int32_t, ::apache::thrif
   return;
 }
 
+void block_response_serviceProcessor::process_chain_ack_batch(int32_t, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol*, void* callContext)
+{
+  void* ctx = NULL;
+  if (this->eventHandler_.get() != NULL) {
+    ctx = this->eventHandler_->getContext("block_response_service.chain_ack_batch", callContext);
+  }
+  ::apache::thrift::TProcessorContextFreer freer(this->eventHandler_.get(), ctx, "block_response_service.chain_ack_batch");
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->preRead(ctx, "block_response_service.chain_ack_batch");
+  }
+
+  block_response_service_chain_ack_batch_args args;
+  args.read(iprot);
+  iprot->readMessageEnd();
+  uint32_t bytes = iprot->getTransport()->readEnd();
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->postRead(ctx, "block_response_service.chain_ack_batch", bytes);
+  }
+
+  try {
+    iface_->chain_ack_batch(args.seqs);
+  } catch (const std::exception&) {
+    if (this->eventHandler_.get() != NULL) {
+      this->eventHandler_->handlerError(ctx, "block_response_service.chain_ack_batch");
+    }
+    return;
+  }
+
+  if (this->eventHandler_.get() != NULL) {
+    this->eventHandler_->asyncComplete(ctx, "block_response_service.chain_ack_batch");
+  }
+
+  return;
+}
+
 ::apache::thrift::stdcxx::shared_ptr< ::apache::thrift::TProcessor > block_response_serviceProcessorFactory::getProcessor(const ::apache::thrift::TConnectionInfo& connInfo) {
   ::apache::thrift::ReleaseHandler< block_response_serviceIfFactory > cleanup(handlerFactory_);
   ::apache::thrift::stdcxx::shared_ptr< block_response_serviceIf > handler(handlerFactory_->getHandler(connInfo), cleanup);
@@ -182,6 +345,28 @@ void block_response_serviceConcurrentClient::send_chain_ack(const sequence_id& s
 
   block_response_service_chain_ack_pargs args;
   args.seq = &seq;
+  args.write(oprot_);
+
+  oprot_->writeMessageEnd();
+  oprot_->getTransport()->writeEnd();
+  oprot_->getTransport()->flush();
+
+  sentry.commit();
+}
+
+void block_response_serviceConcurrentClient::chain_ack_batch(const std::vector<sequence_id> & seqs)
+{
+  send_chain_ack_batch(seqs);
+}
+
+void block_response_serviceConcurrentClient::send_chain_ack_batch(const std::vector<sequence_id> & seqs)
+{
+  int32_t cseqid = 0;
+  ::apache::thrift::async::TConcurrentSendSentry sentry(&this->sync_);
+  oprot_->writeMessageBegin("chain_ack_batch", ::apache::thrift::protocol::T_ONEWAY, cseqid);
+
+  block_response_service_chain_ack_batch_pargs args;
+  args.seqs = &seqs;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();

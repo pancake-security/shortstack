@@ -17,6 +17,7 @@ void l2_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   update_cache_enabled_ = uc_enabled;
   stats_ = stats;
   ack_batch_size_ = ack_batch_size;
+  chain_ack_batch_size_ = ack_batch_size;
 
   replica_to_label_ = dist_info->replica_to_label_;
   key_to_number_of_replicas_ = dist_info->key_to_number_of_replicas_;

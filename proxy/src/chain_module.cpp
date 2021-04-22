@@ -14,11 +14,16 @@ chain_module::~chain_module() {
     response_processor_.join();
 }
 
+void chain_module::set_ack_batch_size(int batch_size) {
+  chain_ack_batch_size_ = batch_size;
+}
+
 void chain_module::setup(const std::string &path,
                          const std::vector<std::string> &chain,
                          chain_role role,
                          const std::string &next_block_id) {
 //   path_ = path;
+  // ack_batch_size_ = ack_batch_size;
   chain_ = chain;
   role_ = role;
   auto protocol = next_->reset(next_block_id);
@@ -70,10 +75,29 @@ void chain_module::ack(const sequence_id &seq) {
   spdlog::debug("Ack, seq_no: {}, len(pending): {}", seq.server_seq_no, pending_.size());
   ack_callback(seq);
   if (!is_head()) {
-    if (prev_ == nullptr) {
-      spdlog::error("Invalid state: Previous is null");
+    ack_queue_.push(seq);
+    if(ack_queue_.size() >= chain_ack_batch_size_) 
+    {
+      spdlog::debug("Flushing ack queue");
+      std::vector<sequence_id> batch;
+      while(!ack_queue_.empty()) {
+        batch.push_back(ack_queue_.front());
+        ack_queue_.pop();
+      }
+
+      if (prev_ == nullptr) {
+        spdlog::error("Invalid state: Previous is null");
+      }
+      prev_->ack_batch(batch);
+
     }
-    prev_->ack(seq);
+    
+  }
+}
+
+void chain_module::ack_batch(const std::vector<sequence_id> & seqs) {
+  for(auto & seq : seqs) {
+    ack(seq);
   }
 }
 

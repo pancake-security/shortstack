@@ -28,6 +28,8 @@ service block_request_service {
 service block_response_service {
   // Chain acknowledgement (at non-head node)
   oneway void chain_ack(1: sequence_id seq),
+
+  oneway void chain_ack_batch(2: list<sequence_id> seqs),
 }
 
 service pancake_thrift extends block_request_service{
