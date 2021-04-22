@@ -6,10 +6,11 @@ sbin="`dirname "$0"`"
 sbin="`cd "$sbin"; pwd`"
 
 hosts_csv=$1
-rep_factor=$2
+shift;
+rep_factor=$2;
 shift;
 
-for ((replica=0; replica<rep_factor; rep++)); do
+for ((replica=0; replica<$rep_factor; replica++)); do
   l2_hosts=($(cat $hosts_csv | awk -v r=$replica '($2 == "L2" && $5 == r) { print $3 }'))
   l2_instances=($(cat $hosts_csv | awk -v r=$replica '($2 == "L2" && $5 == r) { print $1 }'))
   l2_cores=($(cat $hosts_csv | awk -v r=$replica '($2 == "L2" && $5 == r) { print $8 }'))
