@@ -10,7 +10,7 @@ shift;
 rep_factor=$1;
 shift;
 
-for ((replica=0; replica<$rep_factor; replica++)); do
+for ((replica=$rep_factor-1; replica>=0; replica--)); do
   l1_hosts=($(cat $hosts_csv | awk -v r=$replica '($2 == "L1" && $5 == r) { print $3 }'))
   l1_instances=($(cat $hosts_csv | awk -v r=$replica '($2 == "L1" && $5 == r) { print $1 }'))
   l1_cores=($(cat $hosts_csv | awk -v r=$replica '($2 == "L1" && $5 == r) { print $8 }'))
