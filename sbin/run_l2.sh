@@ -7,7 +7,7 @@ sbin="`cd "$sbin"; pwd`"
 
 hosts_csv=$1
 shift;
-rep_factor=$2;
+rep_factor=$1;
 shift;
 
 for ((replica=0; replica<$rep_factor; replica++)); do
