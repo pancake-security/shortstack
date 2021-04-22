@@ -18,5 +18,8 @@ sudo sysctl -w vm.overcommit_memory=1
 echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
 ulimit -n 10240
 
+sudo /local/deploy/wondershaper/wondershaper -a ens5 -c
+sudo /local/deploy/wondershaper/wondershaper -a ens5 -u 1000000
+
 taskset -c $coremask /local/deploy/redis-server --bind $hostname --port $port --save "" --appendonly no "$@" 2>/local/deploy/$iname.err 1>/local/deploy/$iname.out &
 echo "Started KV"
