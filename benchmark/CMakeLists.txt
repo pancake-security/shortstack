@@ -65,6 +65,8 @@ add_executable(proxy_benchmark
 
         ../proxy/src/MurmurHash2.cpp
         ../proxy/src/MurmurHash2.h
+        ../proxy/src/consistent_hash.cpp
+        ../proxy/src/consistent_hash.h
 
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
@@ -157,6 +159,8 @@ add_executable(shortstack_benchmark
 
         ../proxy/src/MurmurHash2.cpp
         ../proxy/src/MurmurHash2.h
+        ../proxy/src/consistent_hash.cpp
+        ../proxy/src/consistent_hash.h
 
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h

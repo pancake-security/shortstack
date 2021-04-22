@@ -1,6 +1,6 @@
 
 #include "redis_interface.h"
-#include "MurmurHash2.h"
+#include "consistent_hash.h"
 #include <spdlog/spdlog.h>
 // #include <iostream>
 
@@ -39,7 +39,8 @@
     }
 
     void redis_interface::async_get(const std::string &key, const l3_operation &op) {
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
 
         get_queues_[idx].push(std::make_tuple(key, op));
 
@@ -51,7 +52,8 @@
     }
 
     void redis_interface::async_put(const std::string &key, const std::string &value, const l3_operation &op) {
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
 
         put_queues_[idx].push(std::make_tuple(key, value, op));
         
