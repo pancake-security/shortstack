@@ -1,5 +1,5 @@
 # Generate hosts.csv file
-# Usage: python gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv <l1-servers> <l1-per-server> <l1-cores> <l2-servers> <l2-per-server> <l2-cores> <l3-servers> <l3-per-server> <l3-cores> <kv-servers> <kv-per-server> <kv-cores> <clients> 
+# Usage: python gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv <l1-servers> <l1-per-server> <l1-cores> <l2-servers> <l2-per-server> <l2-cores> <l3-servers> <l3-per-server> <l3-cores> <kv-servers> <kv-per-server> <kv-cores> <clients> <l1-replicas> <l2-replicas>
 
 import sys
 
@@ -23,8 +23,10 @@ num_kv_servers = int(sys.argv[12])
 num_kv_per_server = int(sys.argv[13])
 num_kv_cores = int(sys.argv[14])
 num_clients = int(sys.argv[15])
+num_l1_replicas = int(sys.argv[16])
+num_l2_replicas = int(sys.argv[17])
 
-cores_per_server = 32
+cores_per_server = 16
 cores = [str(i) for i in range(cores_per_server)]
 
 servers = []
@@ -37,7 +39,7 @@ f.close()
 
 print('%d servers' % (len(servers)))
 
-required_servers = num_l1_servers + num_l2_servers + num_l3_servers + num_kv_servers + num_clients
+required_servers = num_l1_servers*num_l1_replicas + num_l2_servers*num_l2_replicas + num_l3_servers + num_kv_servers + num_clients
 if required_servers > len(servers):
     print('Not enough servers')
 
@@ -52,19 +54,21 @@ for i in range(num_kv_servers):
         core_idx += num_kv_cores
     idx += 1
 
-for i in range(num_l1_servers):
-    core_idx = 0
-    for j in range(num_l1_per_server):
-        f.write('l1_%d_%d L1 %s %d 0 %d %d %s\n' % (i, j, servers[idx], l1_base_port + core_idx, i*num_l1_per_server + j, num_l1_cores,','.join(cores[core_idx:core_idx+num_l1_cores])))
-        core_idx += num_l1_cores
-    idx += 1
+for r in range(num_l1_replicas):
+    for i in range(num_l1_servers):
+        core_idx = 0
+        for j in range(num_l1_per_server):
+            f.write('l1_%d_%d_%d L1 %s %d %d %d %d %s\n' % (r, i, j, servers[idx], l1_base_port + core_idx, r, i*num_l1_per_server + j, num_l1_cores,','.join(cores[core_idx:core_idx+num_l1_cores])))
+            core_idx += num_l1_cores
+        idx += 1
 
-for i in range(num_l2_servers):
-    core_idx = 0
-    for j in range(num_l2_per_server):
-        f.write('l2_%d_%d L2 %s %d 0 %d %d %s\n' % (i, j, servers[idx], l2_base_port + core_idx, i*num_l2_per_server + j, num_l2_cores, ','.join(cores[core_idx:core_idx+num_l2_cores])))
-        core_idx += num_l2_cores
-    idx += 1
+for r in range(num_l2_replicas):
+    for i in range(num_l2_servers):
+        core_idx = 0
+        for j in range(num_l2_per_server):
+            f.write('l2_%d_%d_%d L2 %s %d %d %d %d %s\n' % (r, i, j, servers[idx], l2_base_port + core_idx, r, i*num_l2_per_server + j, num_l2_cores, ','.join(cores[core_idx:core_idx+num_l2_cores])))
+            core_idx += num_l2_cores
+        idx += 1
 
 for i in range(num_l3_servers):
     core_idx = 0

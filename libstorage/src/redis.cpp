@@ -3,7 +3,8 @@
 //
 
 #include "redis.h"
-#include "MurmurHash2.h"
+// #include "MurmurHash2.h"
+#include "consistent_hash.h"
 #include <spdlog/spdlog.h>
 // #include <iostream>
 
@@ -40,7 +41,8 @@
     }
 
     std::string redis::get(const std::string &key){
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
         auto fut = clients[idx]->get(key);
         clients[idx]->commit();
         auto reply = fut.get();
@@ -51,7 +53,8 @@
     }
 
     void redis::put(const std::string &key, const std::string &value){
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
         auto fut = clients[idx]->set(key, value);
         clients[idx]->commit();
         auto reply = fut.get();
@@ -66,7 +69,8 @@
 
         // Gather all relevant storage interface's by id and create vector for key batch
         for (const auto &key: keys) {
-            auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+            // auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+            auto id = consistent_hash(key, clients.size());
             key_vectors[id].emplace_back(key);
         }
 
@@ -114,7 +118,8 @@
         // Gather all relevant storage interface's by id and create vector for key batch
         int i = 0;
         for (const auto &key: keys) {
-            auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());;
+            // auto id = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+            auto id = consistent_hash(key, clients.size());
             key_value_vector_pairs[id].push_back(std::make_pair(key, values[i]));
             i++;
         }
@@ -140,7 +145,8 @@
     }
 
     void redis::async_get(const std::string &key, std::function<void (const std::string&)> callback) {
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
 
         get_queues_[idx].push(std::make_tuple(key, callback));
 
@@ -152,7 +158,8 @@
     }
 
     void redis::async_put(const std::string &key, const std::string &value, std::function<void ()> callback) {
-        auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        // auto idx = (MurmurHash64A(key.data(), key.length(), 1995) % clients.size());
+        auto idx = consistent_hash(key, clients.size());
 
         put_queues_[idx].push(std::make_tuple(key, value, callback));
         
