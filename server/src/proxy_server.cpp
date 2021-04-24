@@ -12,6 +12,7 @@
 #include "l1_proxy.h"
 #include "l2_proxy.h"
 #include "l3_proxy.h"
+#include "p_proxy.h"
 #include "host_info.h"
 #include "distribution_info.h"
 //#include "thrift_response_client_map.h"
@@ -131,56 +132,45 @@ void pancake_usage() {
     std::cout << "\t -d: Core to run on\n";
 };
 
-
 int pancake_main(int argc, char *argv[]) {
-    int client_batch_size = 50;
-    std::atomic<int> xput;
-    std::atomic_init(&xput, 0);
-    int object_size_ = 1000;
-
-    std::shared_ptr<proxy> proxy_ = std::make_shared<pancake_proxy>();
     int o;
-    std::string proxy_type_ = "pancake";
-    while ((o = getopt(argc, argv, "h:p:s:n:v:b:c:t:o:d:z:q:l:")) != -1) {
+    std::string hosts_file;
+    std::string dist_file;
+    std::string instance_name;
+    bool no_all_false = false;
+    bool stats = false;
+    int security_batch_size = 3;
+    int ack_batch_size = 1;
+    int storage_batch_size = 1;
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    while ((o = getopt(argc, argv, "h:d:i:gc:flb:s:")) != -1) {
         switch (o) {
             case 'h':
-                dynamic_cast<pancake_proxy&>(*proxy_).server_host_name_ = std::string(optarg);
-                break;
-            case 'p':
-                dynamic_cast<pancake_proxy&>(*proxy_).server_port_ = std::atoi(optarg);
-                break;
-            case 's':
-                dynamic_cast<pancake_proxy&>(*proxy_).server_type_ = std::string(optarg);
-                break;
-            case 'n':
-                dynamic_cast<pancake_proxy&>(*proxy_).server_count_ = std::atoi(optarg);
-                break;
-            case 'v':
-                dynamic_cast<pancake_proxy&>(*proxy_).object_size_ = std::atoi(optarg);
-                break;
-            case 'b':
-                dynamic_cast<pancake_proxy&>(*proxy_).security_batch_size_ = std::atoi(optarg);
-                break;
-            case 'c':
-                dynamic_cast<pancake_proxy&>(*proxy_).storage_batch_size_ = std::atoi(optarg);
-                break;
-            case 't':
-                dynamic_cast<pancake_proxy&>(*proxy_).p_threads_ = std::atoi(optarg);
-                break;
-            case 'o':
-                dynamic_cast<pancake_proxy&>(*proxy_).output_location_ = std::string(optarg);
+                hosts_file = std::string(optarg);
                 break;
             case 'd':
-                dynamic_cast<pancake_proxy&>(*proxy_).core_ = std::atoi(optarg) - 1;
+                dist_file = std::string(optarg);
                 break;
-            case 'z':
-                proxy_type_ = std::string(optarg);
+            case 'i':
+                instance_name = std::string(optarg);
                 break;
-            case 'q':
-                client_batch_size = std::atoi(optarg);
+            case 'g':
+                spdlog::set_level(spdlog::level::debug);
+                break;
+            case 'c':
+                num_cores = std::atoi(optarg);
+                break;
+            case 'f':
+                no_all_false = true;
                 break;
             case 'l':
-                dynamic_cast<pancake_proxy&>(*proxy_).trace_location_ = std::string(optarg);
+                stats = true;
+                break;
+            case 'b':
+                security_batch_size = std::atoi(optarg);
+                break;
+            case 's':
+                storage_batch_size = std::atoi(optarg);
                 break;
             default:
                 pancake_usage();
@@ -188,33 +178,140 @@ int pancake_main(int argc, char *argv[]) {
         }
     }
 
-    void *arguments[4];
-    std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_;
-    assert(dynamic_cast<pancake_proxy&>(*proxy_).trace_location_ != "");
-    auto dist = load_frequencies_from_trace(dynamic_cast<pancake_proxy&>(*proxy_).trace_location_, trace_, client_batch_size);
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
 
-    arguments[0] = &dist;
-    auto items = dist.get_items();
-    double alpha = 1.0 / items.size();
-    double delta = 1.0 / (2 * items.size()) * 1 / alpha;
-    auto id_to_client = std::make_shared<thrift_response_client_map>();
-    arguments[1] = &alpha;
-    arguments[2] = &delta;
-    arguments[3] = &id_to_client;
-    std::string dummy(object_size_, '0');
-    std::cout <<"Initializing pancake" << std::endl;
-    dynamic_cast<pancake_proxy&>(*proxy_).init(items, std::vector<std::string>(items.size(), dummy), arguments);
-    std::cout << "Initialized pancake" << std::endl;
-    auto proxy_server = thrift_server::create(proxy_, "pancake", id_to_client, PROXY_PORT, 1);
-    std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
-    wait_for_server_start(HOST, PROXY_PORT);
+    std::string proxy_host;
+    int proxy_port;
+    int num_workers;
+    host this_host;
+    if(!hinfo->get_host(instance_name, this_host)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+
+    proxy_host = this_host.hostname;
+    proxy_port = this_host.port;
+    num_workers = this_host.num_workers;
+
+    auto dinfo = std::make_shared<distribution_info>();
+    // TODO: exception handling
+    dinfo->load(dist_file);
+
+    std::vector<std::thread> proxy_serve_threads(num_workers);
+    std::vector<std::shared_ptr<TServer>> proxy_servers(num_workers);
+    std::vector<std::shared_ptr<p_proxy>> proxys(num_workers);
+
+     auto cache = std::make_shared<update_cache>();
+     std::vector<std::shared_ptr<thrift_response_client_map>> id_to_clients(num_workers);
+
+    for(int i = 0; i < num_workers; i++) 
+    {
+        id_to_clients[i] = std::make_shared<thrift_response_client_map>();
+        proxys[i] = std::make_shared<p_proxy>();
+        proxys[i]->init_proxy(hinfo, instance_name, dinfo, i, id_to_clients[i], storage_batch_size, cache);
+        proxys[i]->security_batch_size_ = security_batch_size;
+        proxy_servers[i] = thrift_server::create(proxys[i], "pancake", id_to_clients[i], proxy_port + i, 1);
+        proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
+    }
+    
+    for(int i = 0; i < num_workers; i++) {
+        wait_for_server_start(proxy_host, proxy_port + i);
+    }
+    
     std::cout << "Proxy server is reachable" << std::endl;
     sleep(10000);
-    //flush_thread(proxy_);
-    //proxy_->close();
-    //proxy_server->stop();
+
     return 0;
 }
+
+
+// int pancake_main(int argc, char *argv[]) {
+//     int client_batch_size = 50;
+//     std::atomic<int> xput;
+//     std::atomic_init(&xput, 0);
+//     int object_size_ = 1000;
+
+//     std::shared_ptr<proxy> proxy_ = std::make_shared<pancake_proxy>();
+//     int o;
+//     std::string proxy_type_ = "pancake";
+//     while ((o = getopt(argc, argv, "h:p:s:n:v:b:c:t:o:d:z:q:l:")) != -1) {
+//         switch (o) {
+//             case 'h':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).server_host_name_ = std::string(optarg);
+//                 break;
+//             case 'p':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).server_port_ = std::atoi(optarg);
+//                 break;
+//             case 's':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).server_type_ = std::string(optarg);
+//                 break;
+//             case 'n':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).server_count_ = std::atoi(optarg);
+//                 break;
+//             case 'v':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).object_size_ = std::atoi(optarg);
+//                 break;
+//             case 'b':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).security_batch_size_ = std::atoi(optarg);
+//                 break;
+//             case 'c':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).storage_batch_size_ = std::atoi(optarg);
+//                 break;
+//             case 't':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).p_threads_ = std::atoi(optarg);
+//                 break;
+//             case 'o':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).output_location_ = std::string(optarg);
+//                 break;
+//             case 'd':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).core_ = std::atoi(optarg) - 1;
+//                 break;
+//             case 'z':
+//                 proxy_type_ = std::string(optarg);
+//                 break;
+//             case 'q':
+//                 client_batch_size = std::atoi(optarg);
+//                 break;
+//             case 'l':
+//                 dynamic_cast<pancake_proxy&>(*proxy_).trace_location_ = std::string(optarg);
+//                 break;
+//             default:
+//                 pancake_usage();
+//                 exit(-1);
+//         }
+//     }
+
+//     void *arguments[4];
+//     std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_;
+//     assert(dynamic_cast<pancake_proxy&>(*proxy_).trace_location_ != "");
+//     auto dist = load_frequencies_from_trace(dynamic_cast<pancake_proxy&>(*proxy_).trace_location_, trace_, client_batch_size);
+
+//     arguments[0] = &dist;
+//     auto items = dist.get_items();
+//     double alpha = 1.0 / items.size();
+//     double delta = 1.0 / (2 * items.size()) * 1 / alpha;
+//     auto id_to_client = std::make_shared<thrift_response_client_map>();
+//     arguments[1] = &alpha;
+//     arguments[2] = &delta;
+//     arguments[3] = &id_to_client;
+//     std::string dummy(object_size_, '0');
+//     std::cout <<"Initializing pancake" << std::endl;
+//     dynamic_cast<pancake_proxy&>(*proxy_).init(items, std::vector<std::string>(items.size(), dummy), arguments);
+//     std::cout << "Initialized pancake" << std::endl;
+//     auto proxy_server = thrift_server::create(proxy_, "pancake", id_to_client, PROXY_PORT, 1);
+//     std::thread proxy_serve_thread([&proxy_server] { proxy_server->serve(); });
+//     wait_for_server_start(HOST, PROXY_PORT);
+//     std::cout << "Proxy server is reachable" << std::endl;
+//     sleep(10000);
+//     //flush_thread(proxy_);
+//     //proxy_->close();
+//     //proxy_server->stop();
+//     return 0;
+// }
 
 void l1_usage() {
     std::cout << "Shortstack L1 proxy\n";

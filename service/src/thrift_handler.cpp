@@ -3,6 +3,7 @@
 //
 
 #include "thrift_handler.h"
+#include <iostream>
 
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -40,6 +41,7 @@ int64_t thrift_handler::thrift_handler::get_client_id() {
 void thrift_handler::register_client_id(const int32_t block_id, const int64_t client_id) {
     registered_client_id_ = client_id;
     id_to_client_->add_client(client_id, client_);
+    std::cout << "Client registered" << std::endl;
 }
 
 void thrift_handler::async_get(const sequence_id& seq_id, const std::string& key) {
