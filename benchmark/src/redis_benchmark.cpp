@@ -13,13 +13,12 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <thread>
+#include <set>
+#include <spdlog/spdlog.h>
 #include "timer.h"
-#include "distribution.h"
-#include "pancake_proxy.h"
-#include "thrift_server.h"
-#include "proxy_client.h"
-#include "async_proxy_client.h"
-#include "thrift_utils.h"
+// #include "distribution.h"
+#include "host_info.h"
+#include "redis.h"
 
 typedef std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_vector;
 
@@ -85,12 +84,10 @@ void load_trace(const std::string &trace_location, trace_vector &trace, int clie
 };
 
 void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int client_batch_size,
-                   int object_size, trace_vector &trace, std::atomic<int> &xput, async_proxy_client client) {
-    std::string dummy(object_size, '0');
+                 trace_vector &trace, std::atomic<int> &xput, redis& client) {
+
     int ops = 0;
-    if (stats) {
-        ops = client.num_requests_satisfied();
-    }
+    
     uint64_t start, end;
     auto ticks_per_ns = static_cast<double>(rdtscuhz()) / 1000;
     auto s = std::chrono::high_resolution_clock::now();
@@ -110,18 +107,17 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
             client.put_batch(keys_values_pair.first, keys_values_pair.second);
         }
         if (stats) {
+            ops += keys_values_pair.first.size();
             rdtscll(end);
             double cycles = static_cast<double>(end - start);
             latencies.push_back((cycles / ticks_per_ns) / client_batch_size);
             rdtscll(start);
-            //ops += keys_values_pair.first.size();
         }
         e = std::chrono::high_resolution_clock::now();
         elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(e - s).count());
         i = (i+1)%trace.size();
     }
-    if (stats) 
-        ops = client.num_requests_satisfied() - ops;
+
     e = std::chrono::high_resolution_clock::now(); 
     elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::microseconds>(e - s).count());
     if (stats)
@@ -129,28 +125,35 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
 }
 
 void warmup(std::vector<int> &latencies, int client_batch_size,
-            int object_size, trace_vector &trace, std::atomic<int> &xput, async_proxy_client client) {
-    run_benchmark(15, false, latencies, client_batch_size, object_size, trace, xput, client);
+             trace_vector &trace, std::atomic<int> &xput, redis& client) {
+    run_benchmark(15, false, latencies, client_batch_size, trace, xput, client);
 }
 
 void cooldown(std::vector<int> &latencies, int client_batch_size,
-              int object_size, trace_vector &trace, std::atomic<int> &xput, async_proxy_client client) {
-    run_benchmark(15, false, latencies, client_batch_size, object_size, trace, xput, client);
+                trace_vector &trace, std::atomic<int> &xput, redis& client) {
+    run_benchmark(15, false, latencies, client_batch_size,  trace, xput, client);
 }
 
-void client(int idx, int client_batch_size, int object_size, trace_vector &trace, std::string &output_directory, std::string &host, int proxy_port, std::atomic<int> &xput) {
-    async_proxy_client client;
-    client.init(host, proxy_port);
+// (client, i, client_batch_size, std::ref(trace), output_path, hinfo, std::ref(xput), std::ref(client_lats[i])))
+void client(int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hosts, std::atomic<int> &xput, std::vector<int> &latencies) {
+    
+    std::vector<host> kv_hosts;
+    hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts); 
+      
+    redis client(kv_hosts[0].hostname, kv_hosts[0].port, client_batch_size);
+    for (int j = 1; j < kv_hosts.size(); j++) {
+        client.add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      }
 
     std::cout << "Client initialized" << std::endl;
     std::atomic<int> indiv_xput;
     std::atomic_init(&indiv_xput, 0);
-    std::vector<int> latencies;
+    // std::vector<int> latencies;
     std::cout << "Beginning warmup" << std::endl;
-    warmup(latencies, client_batch_size, object_size, trace, indiv_xput, client);
+    warmup(latencies, client_batch_size, trace, indiv_xput, client);
     std::cout << "Beginning benchmark" << std::endl;
-    run_benchmark(20, true, latencies, client_batch_size, object_size, trace, indiv_xput, client);
-    std::string location = output_directory + "/" + std::to_string(idx);
+    run_benchmark(20, true, latencies, client_batch_size, trace, indiv_xput, client);
+    std::string location = output_path + "/redisclient" + std::to_string(idx);
     std::ofstream out(location);
     std::string line("");
     for (auto lat : latencies) {
@@ -162,19 +165,19 @@ void client(int idx, int client_batch_size, int object_size, trace_vector &trace
     out << line;
     xput += indiv_xput;
     std::cout << "Beginning cooldown" << std::endl;
-    cooldown(latencies, client_batch_size, object_size, trace, indiv_xput, client);
+    cooldown(latencies, client_batch_size, trace, indiv_xput, client);
 
-    client.finish();
+    // client.finish();
 }
 
 void usage() {
-    std::cout << "Proxy client\n";
-    std::cout << "\t -h: Proxy host name\n";
-    std::cout << "\t -p: Proxy port\n";
+    std::cout << "Redis benchmark\n";
+    std::cout << "\t -h: Hosts filen";
     std::cout << "\t -t: Trace Location\n";
     std::cout << "\t -n: Number of threads to spawn\n";
-    std::cout << "\t -s: Object Size\n";
-    std::cout << "\t -o: Output Directory\n";
+    std::cout << "\t -s: Batch size\n";
+    std::cout << "\t -o: Output Prefix\n";
+    std::cout << "\t -i: Init the KV store\n";
 };
 
 int _mkdir(const char *path) {
@@ -189,41 +192,96 @@ int _mkdir(const char *path) {
     #endif
 }
 
-int main(int argc, char *argv[]) {
-    std::string proxy_host = "127.0.0.1";
-    int proxy_port = 9090;
-    std::string trace_location = "";
-    int client_batch_size = 50;
-    int object_size = 1000;
-    int num_clients = 1;
+void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
+    cpp_redis::network::set_default_nb_workers(10);
 
-    std::time_t end_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto date_string = std::string(std::ctime(&end_time));
-    date_string = date_string.substr(0, date_string.rfind(":"));
-    date_string.erase(remove(date_string.begin(), date_string.end(), ' '), date_string.end());
-    std::string output_directory = "data/"+date_string;
+    std::vector<host> kv_hosts;
+    hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts); 
+      
+    redis client(kv_hosts[0].hostname, kv_hosts[0].port, 50);
+    for (int j = 1; j < kv_hosts.size(); j++) {
+        client.add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+    }
+
+    spdlog::info("Redis client connected");
+
+    std::set<std::string> keys;
+    for(auto &kv_pair : trace) {
+        for(auto &key : kv_pair.first) {
+            keys.insert(key);
+        }
+    }
+
+    spdlog::info("Num keys: {}", keys.size());
+
+    std::string dummy(obj_size, '0');
+
+    std::vector<std::string> put_keys;
+    std::vector<std::string> put_vals;
+
+    for(auto &key : keys) {
+        put_keys.push_back(key);
+        put_vals.push_back(dummy);
+
+        if(put_keys.size() >= 50) {
+            client.put_batch(put_keys, put_vals);
+            put_keys.clear();
+            put_vals.clear();
+        }
+    }
+
+    if(put_keys.size() > 0) {
+        client.put_batch(put_keys, put_vals);
+        put_keys.clear();
+        put_vals.clear();
+    }
+
+    spdlog::info("Init complete");
+
+}
+
+int main(int argc, char *argv[]) {
+    std::string trace_location = "";
+    int client_batch_size = 1;
+    // int object_size = 1000;
+    int num_clients = 1;
+    int queue_depth = 1;
+
+    std::string output_prefix = "foo";
 
     int o;
-    std::string proxy_type_ = "pancake";
-    while ((o = getopt(argc, argv, "h:p:t:s:b:n:o:")) != -1) {
+    std::string hosts_file;
+    bool debug_mode = false;
+    bool init_mode = false;
+    int obj_size = 1000;
+    while ((o = getopt(argc, argv, "h:t:n:o:q:gs:iz:")) != -1) {
         switch (o) {
             case 'h':
-                proxy_host = std::string(optarg);
-                break;
-            case 'p':
-                proxy_port = std::atoi(optarg);
+                hosts_file = std::string(optarg);
                 break;
             case 't':
                 trace_location = std::string(optarg);
-                break;
-            case 's':
-                object_size = std::atoi(optarg);
                 break;
             case 'n':
                 num_clients = std::atoi(optarg);
                 break;
             case 'o':
-                output_directory = std::string(optarg);
+                output_prefix = std::string(optarg);
+                break;
+            case 'q':
+                queue_depth = std::atoi(optarg);
+                break;
+            case 'g':
+                debug_mode = true;
+                break;
+            case 's':
+                client_batch_size = std::atoi(optarg);
+                break;
+            case 'i':
+                init_mode = true;
+                break;
+            case 'z':
+                obj_size = std::atoi(optarg);
                 break;
             default:
                 usage();
@@ -231,20 +289,63 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    _mkdir((output_directory).c_str());
-    std::atomic<int> xput;
-    std::atomic_init(&xput, 0);
-
     trace_vector trace;
     load_trace(trace_location, trace, client_batch_size);
     std::cout << "trace loaded" << std::endl;
 
+    if(debug_mode) {
+        spdlog::set_level(spdlog::level::debug);
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosts file" << std::endl;
+        exit(-1);
+    }
+
+    if(init_mode) {
+        init(trace, hinfo, obj_size);
+        return 0;
+    }
+
+    std::string output_path = "data/" + output_prefix;
+
+
+    // _mkdir((output_directory).c_str());
+    std::string rm_cmdline = "rm " + output_path + "*";
+    system(rm_cmdline.c_str());
+    std::atomic<int> xput;
+    std::atomic_init(&xput, 0);
+
+    
+
+    std::vector<std::vector<int>> client_lats;
+    for(int i = 0; i < num_clients; i++) 
+    {
+        std::vector<int> lats;
+        client_lats.push_back(lats);
+    }
+
+    cpp_redis::network::set_default_nb_workers(num_clients);
+
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
-        threads.push_back(std::thread(client, std::ref(i), std::ref(client_batch_size), std::ref(object_size), std::ref(trace),
-                          std::ref(output_directory), std::ref(proxy_host), std::ref(proxy_port), std::ref(xput)));
+        threads.push_back(std::thread(client, i, client_batch_size, std::ref(trace),
+                          output_path, hinfo, std::ref(xput), std::ref(client_lats[i])));
     }
     for (int i = 0; i < num_clients; i++)
         threads[i].join();
     std::cout << "Xput was: " << xput << std::endl;
+
+    double lat_sum = 0;
+    double lat_count = 0;
+    for(int i = 0; i < num_clients; i++) 
+    {
+        for(auto l : client_lats[i]) {
+            lat_sum += l;
+            lat_count += 1;
+        }
+    }
+
+    std::cout << "Average latency: " << (lat_sum/lat_count) << std::endl;
 }
