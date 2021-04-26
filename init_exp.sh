@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 
-# Usage: ./init_exp.sh 2 3 ycsb-c-1m 1000
+# Usage: ./init_exp.sh 2 2 2 3 2 ycsb-c-1m 1000
 
-x=$1
-rep=$2
-trace=$3
-objsz=$4
+nl1=$1
+nl2=$2
+nl3=$3
+rep=$4
+nredis=$5
+trace=$6
+objsz=$7
 
 echo "Pushing bins"
 
 ./push_bins.sh
 
 echo "Gen + sync hosts file"
-python3 gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv $1 1 16 $1 1 16 $1 16 1 $x 1 1 1 $rep $rep
+python3 gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv $nl1 1 16 $nl2 1 16 $nl3 16 1 $nredis 1 1 1 $rep $rep
 sbin/sync.sh /local/deploy/hosts.csv
 
 echo "Starting redis"
