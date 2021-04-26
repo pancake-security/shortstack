@@ -39,7 +39,7 @@ void p_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
-  cpp_redis::network::set_default_nb_workers(1);
+  cpp_redis::network::set_default_nb_workers(10);
 
   auto crypto_queue = crypto_queue_;
   bool stats_enbl = false;
