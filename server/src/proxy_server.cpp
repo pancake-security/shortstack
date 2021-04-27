@@ -939,7 +939,7 @@ int redisdbg_main(int argc, char *argv[]) {
     std::cout << "num probs: " << probs.size() << std::endl; 
 
     double load[16];
-    int num_buckets = 4;
+    int num_buckets = std::atoi(argv[2]);
 
     for(int i =0; i< num_buckets; i++)
      {
