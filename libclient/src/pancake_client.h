@@ -52,11 +52,19 @@ private:
 
     void response_thread(int idx);
 
+    void flush_thread();
+
     // L1 proxy connections
     std::vector<std::shared_ptr<TSocket>> l1_sockets_;
   std::vector<std::shared_ptr<TTransport>> l1_transports_;
   std::vector<std::shared_ptr<TProtocol>> l1_protocols_;
   std::vector<std::shared_ptr<pancake_thriftClient>> l1_clients_;
+
+  // Extra L1 proxy connections
+    std::vector<std::shared_ptr<TSocket>> flush_sockets_;
+  std::vector<std::shared_ptr<TTransport>> flush_transports_;
+  std::vector<std::shared_ptr<TProtocol>> flush_protocols_;
+  std::vector<std::shared_ptr<pancake_thriftClient>> flush_clients_;
 
     // L3 proxy connections
     std::vector<std::shared_ptr<TSocket>> l3_sockets_;
@@ -71,6 +79,7 @@ private:
     std::vector<command_response_reader> readers_;
 
     std::vector<std::thread> response_threads_;
+    std::thread flush_thread_;
     std::shared_ptr<queue<l3_response>> response_queue_;
     std::atomic<bool> done_;
 

@@ -36,6 +36,8 @@ public:
     virtual void setup_chain_stub(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) = 0;
     virtual void resend_pending_stub(const int32_t block_id) = 0;
 
+    virtual void flush() = 0;
+
 
 };
 #endif //PANCAKE_PROXY_H

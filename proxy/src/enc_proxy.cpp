@@ -256,7 +256,13 @@ void enc_proxy::process_op(const l1_operation &op) {
 }
 
 
-void enc_proxy::flush() { throw std::logic_error("not implemented"); }
+void enc_proxy::flush() { 
+
+    if(storage_iface_ != nullptr) {
+      storage_iface_->flush();
+    }
+
+ }
 
 void enc_proxy::close() {
   // finished_.store(true);

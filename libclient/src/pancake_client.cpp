@@ -52,6 +52,25 @@ void pancake_client::init(int64_t client_id, std::shared_ptr<host_info> hosts) {
      }
   }
 
+  for(int i = 0; i < l1_hostnames.size(); i++) 
+  {
+    for(int j = 0; j < l1_workers[i]; j++)
+     {
+        auto socket = std::make_shared<TSocket>(l1_hostnames[i], l1_ports[i] + j);
+        socket->setRecvTimeout(10000);
+        socket->setSendTimeout(1200000);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<pancake_thriftClient>(protocol);
+        transport->open();
+
+        flush_sockets_.push_back(socket);
+        flush_transports_.push_back(transport);
+        flush_protocols_.push_back(protocol);
+        flush_clients_.push_back(client);
+     }
+  }
+
   std::vector<host> l3_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_L1, l3_hosts);
 
@@ -114,6 +133,7 @@ void pancake_client::init(int64_t client_id, std::shared_ptr<host_info> hosts) {
         response_threads_.push_back(std::thread(&pancake_client::response_thread, this, i));
     }
 
+    flush_thread_ = std::thread(&pancake_client::flush_thread, this);
 }
 
 int64_t pancake_client::get_client_id() {
@@ -162,6 +182,7 @@ int64_t pancake_client::poll_responses(std::string &out, std::string &diag) {
 void pancake_client::finish() {
     done_.store(true);
     sleep(5);
+    flush_thread_.join();
     for(int i = 0; i < response_threads_.size(); i++) 
     {
         response_threads_[i].join();
@@ -186,6 +207,18 @@ void pancake_client::response_thread(int idx) {
         response_queue_->push(resp);
 
         _return.clear();
+    }
+}
+
+void pancake_client::flush_thread() {
+    while(!done_.load()) {
+        sleep(5);
+
+        for(int i = 0; i < flush_clients_.size(); i++) 
+        {
+            spdlog::info("Flushing proxys");
+            flush_clients_[i]->put("$flush$", "$flush$");
+        }
     }
 }
 
