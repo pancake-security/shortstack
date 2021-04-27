@@ -839,6 +839,9 @@ int redisdbg_main(int argc, char *argv[]) {
     auto keys = dist.get_items();
     auto probs = dist.get_probabilities();
 
+    std::cout << "num keys: " << keys.size() << std::endl;
+    std::cout << "num probs: " << probs.size() << std::endl; 
+
     double load[16];
     int num_buckets = 4;
 
