@@ -83,12 +83,12 @@ void shortstack_client::init(int64_t client_id, std::shared_ptr<host_info> hosts
         l3_protocols_.push_back(protocol);
         l3_clients_.push_back(client);
      }
+  }
 
     // Register with all L3 servers
     for(int i = 0; i < l3_clients_.size(); i++) {
         l3_clients_[i]->register_client_id(client_id_);
     }
-  }
 
     response_queue_ = std::make_shared<queue<l3_response>>();
     for(int i = 0; i < l3_protocols_.size(); i++) 
