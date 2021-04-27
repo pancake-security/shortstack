@@ -18,7 +18,7 @@ echo "Starting redis"
 sbin/hosts.sh /local/deploy/stop_redis.sh; sbin/run_redis.sh /local/deploy/hosts.csv
 
 echo "Init KV store"
-/local/deploy/redis_benchmark -i -h /local/deploy/hosts.csv -t traces/$trace -z $objsize
+/local/deploy/redis_benchmark -i -h /local/deploy/hosts.csv -t local/deploy/$trace -z $objsize
 
 echo "Starting proxies"
 sbin/hosts.sh /local/deploy/stop_proxys.sh; 
