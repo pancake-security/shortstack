@@ -19,6 +19,7 @@
 // #include "distribution.h"
 #include "host_info.h"
 #include "redis.h"
+#include "encryption_engine.h"
 
 typedef std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_vector;
 
@@ -195,6 +196,8 @@ int _mkdir(const char *path) {
 void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
     cpp_redis::network::set_default_nb_workers(10);
 
+    encryption_engine enc_engine;
+
     std::vector<host> kv_hosts;
     hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts); 
       
@@ -215,13 +218,14 @@ void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
     spdlog::info("Num keys: {}", keys.size());
 
     std::string dummy(obj_size, '0');
+    auto dummy_ct = enc_engine.encrypt(dummy);
 
     std::vector<std::string> put_keys;
     std::vector<std::string> put_vals;
 
     for(auto &key : keys) {
         put_keys.push_back(key);
-        put_vals.push_back(dummy);
+        put_vals.push_back(dummy_ct);
 
         if(put_keys.size() >= 50) {
             client.put_batch(put_keys, put_vals);

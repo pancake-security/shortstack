@@ -13,6 +13,7 @@
 #include "l2_proxy.h"
 #include "l3_proxy.h"
 #include "p_proxy.h"
+#include "enc_proxy.h"
 #include "host_info.h"
 #include "distribution_info.h"
 //#include "thrift_response_client_map.h"
@@ -215,6 +216,101 @@ int pancake_main(int argc, char *argv[]) {
         proxys[i]->init_proxy(hinfo, instance_name, dinfo, i, id_to_clients[i], storage_batch_size, cache);
         proxys[i]->security_batch_size_ = security_batch_size;
         proxy_servers[i] = thrift_server::create(proxys[i], "pancake", id_to_clients[i], proxy_port + i, 1);
+        proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
+    }
+    
+    for(int i = 0; i < num_workers; i++) {
+        wait_for_server_start(proxy_host, proxy_port + i);
+    }
+    
+    std::cout << "Proxy server is reachable" << std::endl;
+    sleep(10000);
+
+    return 0;
+}
+
+
+int enc_main(int argc, char *argv[]) {
+    int o;
+    std::string hosts_file;
+    std::string dist_file;
+    std::string instance_name;
+    bool no_all_false = false;
+    bool stats = false;
+    int security_batch_size = 3;
+    int ack_batch_size = 1;
+    int storage_batch_size = 1;
+    int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
+    while ((o = getopt(argc, argv, "h:d:i:gc:flb:s:")) != -1) {
+        switch (o) {
+            case 'h':
+                hosts_file = std::string(optarg);
+                break;
+            case 'd':
+                dist_file = std::string(optarg);
+                break;
+            case 'i':
+                instance_name = std::string(optarg);
+                break;
+            case 'g':
+                spdlog::set_level(spdlog::level::debug);
+                break;
+            case 'c':
+                num_cores = std::atoi(optarg);
+                break;
+            case 'f':
+                no_all_false = true;
+                break;
+            case 'l':
+                stats = true;
+                break;
+            case 'b':
+                security_batch_size = std::atoi(optarg);
+                break;
+            case 's':
+                storage_batch_size = std::atoi(optarg);
+                break;
+            default:
+                pancake_usage();
+                exit(-1);
+        }
+    }
+
+    auto hinfo = std::make_shared<host_info>();
+    if(!hinfo->load(hosts_file)) {
+        std::cerr << "Unable to load hosst file" << std::endl;
+        exit(-1);
+    }
+
+    std::string proxy_host;
+    int proxy_port;
+    int num_workers;
+    host this_host;
+    if(!hinfo->get_host(instance_name, this_host)) {
+        std::cerr << "Invalid instance name" << std::endl;
+        exit(-1);
+    }
+
+    proxy_host = this_host.hostname;
+    proxy_port = this_host.port;
+    num_workers = this_host.num_workers;
+
+
+    std::vector<std::thread> proxy_serve_threads(num_workers);
+    std::vector<std::shared_ptr<TServer>> proxy_servers(num_workers);
+    std::vector<std::shared_ptr<enc_proxy>> proxys(num_workers);
+
+
+     std::vector<std::shared_ptr<thrift_response_client_map>> id_to_clients(num_workers);
+
+    cpp_redis::network::set_default_nb_workers(num_workers);
+
+    for(int i = 0; i < num_workers; i++) 
+    {
+        id_to_clients[i] = std::make_shared<thrift_response_client_map>();
+        proxys[i] = std::make_shared<enc_proxy>();
+        proxys[i]->init_proxy(hinfo, instance_name, i, id_to_clients[i], storage_batch_size);
+        proxy_servers[i] = thrift_server::create(proxys[i], "enc", id_to_clients[i], proxy_port + i, 1);
         proxy_serve_threads[i] = std::thread([&proxy_servers, i] { proxy_servers[i]->serve(); });
     }
     
@@ -890,6 +986,8 @@ int main(int argc, char *argv[]) {
         return manager_main(argc - 1, argv + 1);
     } else if(strcmp(argv[1], "redisdbg") == 0) {
         return redisdbg_main(argc - 1, argv + 1);
+    } else if(strcmp(argv[1], "enc") == 0) {
+        return enc_main(argc - 1, argv + 1);
     } else {    
         std::cerr << "Unkown proxy type" << std::endl;
         exit(-1);

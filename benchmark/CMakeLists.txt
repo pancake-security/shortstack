@@ -245,10 +245,10 @@ add_executable(redis_benchmark
         # ../proxy/src/queue.h
         # ../proxy/src/update_cache.h
         # ../proxy/src/update_cache.cpp
-        # ../proxy/src/encryption_engine.h
-        # ../proxy/src/encryption_engine.cpp
-        # ../proxy/src/util.h
-        # ../proxy/src/util.cpp
+        ../proxy/src/encryption_engine.h
+        ../proxy/src/encryption_engine.cpp
+        ../proxy/src/util.h
+        ../proxy/src/util.cpp
 
         ../proxy/src/host_info.cpp
         ../proxy/src/host_info.h

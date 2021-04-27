@@ -73,6 +73,9 @@ private:
     std::vector<std::thread> response_threads_;
     std::shared_ptr<queue<l3_response>> response_queue_;
     std::atomic<bool> done_;
+
+    int num_servers_ = 0;
+    int num_workers_ = 0;
     
 };
 

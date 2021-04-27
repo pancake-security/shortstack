@@ -125,6 +125,8 @@ add_executable(proxy_server
 
         ../proxy/src/p_proxy.cpp
         ../proxy/src/p_proxy.h
+        ../proxy/src/enc_proxy.cpp
+        ../proxy/src/enc_proxy.h
         
         ../libstorage/src/storage_interface.h
         ../libstorage/src/redis.h
