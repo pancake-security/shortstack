@@ -66,6 +66,10 @@ void thrift_handler::get(std::string& _return, const std::string& key) {
 }
 
 void thrift_handler::put(const std::string& key, const std::string& value) {
+    if(key == "$flush$") {
+        proxy_->flush();
+        return;
+    }
     proxy_->put(operation_count_++, key, value);
 }
 
