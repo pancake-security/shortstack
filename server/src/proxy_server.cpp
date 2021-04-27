@@ -818,19 +818,43 @@ int redisdbg_main(int argc, char *argv[]) {
 
     // sleep(10);
 
-    int count[8];
-    for(int i = 0; i < 8; i++) 
-    {
-        count[i] = 0;
-    }
-    for(int i = 0; i < 20000; i++) {
-        auto id = consistent_hash(std::to_string(i), 8);
-        count[id] += 1;
+    // int count[8];
+    // for(int i = 0; i < 8; i++) 
+    // {
+    //     count[i] = 0;
+    // }
+    // for(int i = 0; i < 20000; i++) {
+    //     auto id = consistent_hash(std::to_string(i), 8);
+    //     count[id] += 1;
+    // }
+
+    // for(int i = 0; i < 8 ; i++)
+    // {
+    //     std::cout << count[i] << std::endl;
+    // }
+
+    std::vector<std::pair<std::vector<std::string>, std::vector<std::string>>> trace_;
+    auto dist = load_frequencies_from_trace(argv[1], trace_, 50);
+
+    auto keys = dist.get_items();
+    auto probs = dist.get_probabilities();
+
+    double load[16];
+    int num_buckets = 4;
+
+    for(int i =0; i< num_buckets; i++)
+     {
+         load[i] = 0.0;
+     }
+
+    for(int i = 0; i < keys.size(); i++) {
+        auto k = keys[i];
+        auto id = consistent_hash(k, num_buckets);
+        load[id] += probs[i];
     }
 
-    for(int i = 0; i < 8 ; i++)
-    {
-        std::cout << count[i] << std::endl;
+    for(int i = 0; i< num_buckets; i++) {
+        std::cout << load[i] << std::endl;
     }
 
 
