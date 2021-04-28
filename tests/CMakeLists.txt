@@ -167,8 +167,8 @@ add_executable(shortstack_test
         ../libclient/src/proxy_client.h
         ../libclient/src/command_response_reader.cpp
         ../libclient/src/command_response_reader.h
-        ../libclient/src/pancake_client.h
-        ../libclient/src/pancake_client.cpp
+        ../libclient/src/shortstack_client.h
+        ../libclient/src/shortstack_client.cpp
 
         ../service/src/pancake_thrift_response.cpp
         ../service/src/thrift_response_client.cpp
