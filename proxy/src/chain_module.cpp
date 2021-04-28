@@ -55,7 +55,17 @@ void chain_module::setup(const std::string &path,
 void chain_module::resend_pending() {
   auto ops = pending_.lock_table();
   try {
+    std::vector<std::pair<int64_t, chain_op>> op_list;
     for (const auto &op: ops) {
+      op_list.push_back(op);
+    }
+
+    // Sort by sequence number
+    std::sort(op_list.begin(), op_list.end(), [](std::pair<int64_t, chain_op> const &a, std::pair<int64_t, chain_op> const &b) {
+      return a.first < b.first;
+    });
+
+    for (const auto &op: op_list) {
       if(is_tail()) {
         replication_complete(op.second.seq, op.second.args);
       } else {
