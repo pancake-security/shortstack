@@ -193,18 +193,11 @@ int _mkdir(const char *path) {
     #endif
 }
 
-void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
-    cpp_redis::network::set_default_nb_workers(10);
-
+void init_idx(trace_vector &trace, int obj_size, std::string host, int port) {
     encryption_engine enc_engine;
 
-    std::vector<host> kv_hosts;
-    hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts); 
-      
-    redis client(kv_hosts[0].hostname, kv_hosts[0].port, 50);
-    for (int j = 1; j < kv_hosts.size(); j++) {
-        client.add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-    }
+
+    redis client(host, port, 50);
 
     spdlog::info("Redis client connected");
 
@@ -239,6 +232,18 @@ void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
         put_keys.clear();
         put_vals.clear();
     }
+}
+
+void init(trace_vector &trace, std::shared_ptr<host_info> hosts, int obj_size) {
+    cpp_redis::network::set_default_nb_workers(10);
+
+    std::vector<host> kv_hosts;
+    hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
+
+    for(auto &h : kv_hosts) {
+        init_idx(trace, obj_size, h.hostname, h.port);
+    }
+    
 
     spdlog::info("Init complete");
 
