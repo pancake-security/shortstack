@@ -6,8 +6,7 @@
 #include "assert.h"
 
 #include "host_info.h"
-// #include "shortstack_client.h"
-#include "pancake_client.h"
+#include "shortstack_client.h"
 
 void usage() {
     std::cout << "<binary> -h <hosts_file>" << std::endl;
@@ -39,7 +38,7 @@ int main(int argc, char *argv[]) {
     std::uniform_int_distribution<int64_t> distrib(0,10000);
     int64_t base_client_id = distrib(gen);
 
-    auto client = std::make_shared<pancake_client>();
+    auto client = std::make_shared<shortstack_client>();
     client->init(base_client_id, hinfo);
     std::cout << "Initialized client" << std::endl;
 
