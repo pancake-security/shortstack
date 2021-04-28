@@ -141,12 +141,12 @@ int64_t pancake_client::get_client_id() {
 }
 
 int64_t pancake_client::get(const std::string &key) {
-    // Pick proxy based on consistent hash
-    int id = consistent_hash(key, num_servers_);
-    // Pick worker randomly
-    int wid = rand_uint32(0, RAND_MAX) % num_workers_;
-    // int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
-    int idx = id*num_workers_ + wid;
+    // // Pick proxy based on consistent hash
+    // int id = consistent_hash(key, num_servers_);
+    // // Pick worker randomly
+    // int wid = rand_uint32(0, RAND_MAX) % num_workers_;
+    int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
+    // int idx = id*num_workers_ + wid;
 
     sequence_id seq;
     seq.client_id = client_id_;
@@ -157,12 +157,12 @@ int64_t pancake_client::get(const std::string &key) {
 }
 
 int64_t pancake_client::put(const std::string &key, const std::string &value) {
-    // Pick proxy based on consistent hash
-    int id = consistent_hash(key, num_servers_);
-    // Pick worker randomly
-    int wid = rand_uint32(0, RAND_MAX) % num_workers_;
-    // int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
-    int idx = id*num_workers_ + wid;
+    // // Pick proxy based on consistent hash
+    // int id = consistent_hash(key, num_servers_);
+    // // Pick worker randomly
+    // int wid = rand_uint32(0, RAND_MAX) % num_workers_;
+    int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
+    // int idx = id*num_workers_ + wid;
 
     sequence_id seq;
     seq.client_id = client_id_;
