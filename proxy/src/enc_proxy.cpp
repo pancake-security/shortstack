@@ -24,31 +24,30 @@ void enc_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   storage_batch_size_ = storage_batch_size;
 
-  // crypto_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>>();;
+  encrypt_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>>();
+
+  decrypt_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>>();
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 
   auto resp_queue = respond_queue_;
+  auto crypto_queue = decrypt_queue_;
   auto enc_engine = std::make_shared<encryption_engine>();
-  redis_interface::get_callback get_cb = [resp_queue, enc_engine](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
-      // crypto_op_batch batch;
+  redis_interface::get_callback get_cb = [resp_queue, crypto_queue, enc_engine](const std::vector<l3_operation> &ops, const std::vector<std::string> & vals) {
+      crypto_op_batch batch;
       for(int i = 0; i < ops.size(); i++) 
       {
         const l3_operation &op = ops[i];
         spdlog::debug("recvd KV GET response client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
-        
-        std::string cipher = vals[i];
-        auto plaintext = enc_engine->decrypt(cipher);
 
-          client_response resp;
-          resp.seq_id = op.seq_id;
-          resp.result = plaintext;
-          resp.op_code = OP_GET;
-
-
-          // TODO: Even this can be batched
-          resp_queue->push(resp);
+        // Enqueue task for crypto thread
+        crypto_operation crypto_op;
+        crypto_op.l3_op = op;
+        crypto_op.kv_response = vals[i];
+        batch.push_back(crypto_op);
       }
+
+      crypto_queue->enqueue(batch);
   };
 
 
@@ -79,8 +78,14 @@ void enc_proxy::init_proxy(std::shared_ptr<host_info> hosts,
         storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       }
 
+      storage_iface2_ =
+          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb);
+      for (int j = 1; j < kv_hosts.size(); j++) {
+        storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      }
 
-      spdlog::info("Worker {}: Storage interface connected", idx_);
+
+      spdlog::info("Worker {}: Storage interfaces connected", idx_);
    
   } else {
       // storage_iface_ =
@@ -95,8 +100,11 @@ void enc_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   // threads_.push_back(std::thread(&l3_proxy::consumer_thread, this));
 
-    // threads_.push_back(std::thread(&enc_proxy::crypto_thread, this,
-    //                                new encryption_engine(encryption_engine_)));
+    threads_.push_back(std::thread(&enc_proxy::encrypt_thread, this,
+                                   new encryption_engine(encryption_engine_)));
+
+    threads_.push_back(std::thread(&enc_proxy::decrypt_thread, this,
+                                   new encryption_engine(encryption_engine_)));
 
   threads_.push_back(std::thread(&enc_proxy::responder_thread, this));
   
@@ -237,13 +245,24 @@ void enc_proxy::process_op(const l1_operation &op) {
   spdlog::debug("recvd op client_id:{}, seq_no:{}", op.seq_id.client_id, op.seq_id.client_seq_no);
   // Encrypt and send to KV
   if(op.value != "") {
-    auto cipher = encryption_engine_.encrypt(op.value);
     l3_operation l3_op;
     l3_op.seq_id = op.seq_id;
     l3_op.label = op.key;
-    l3_op.value = cipher;
+    l3_op.value = op.value;
     l3_op.is_read = false;
-    storage_iface_->async_put(op.key, cipher, l3_op);
+    internal_queue_.push(l3_op);
+    
+    if(internal_queue_.size() >= storage_batch_size_) 
+    {
+      crypto_op_batch batch;
+      while(!internal_queue_.empty()) {
+        crypto_operation crypto_op;
+        crypto_op.l3_op = internal_queue_.front();
+        batch.push_back(crypto_op);
+        internal_queue_.pop();
+      }
+      encrypt_queue_->enqueue(batch);
+    }
   } else {
     l3_operation l3_op;
     l3_op.seq_id = op.seq_id;
@@ -271,68 +290,80 @@ void enc_proxy::close() {
   //   threads_[i].join();
 }
 
-// void enc_proxy::crypto_thread(encryption_engine *enc_engine) {
-//   spdlog::info("Worker {}: Crypto thread started", idx_);
+void enc_proxy::encrypt_thread(encryption_engine *enc_engine) {
+  spdlog::info("Worker {}: Encryption thread started", idx_);
 
-//   auto storage_iface = storage_iface2_;
-//   auto fake_id = fake_client_id_;
-//   auto resp_queue = respond_queue_;
+  auto storage_iface = storage_iface2_;
 
-//   while(true) {
-//     crypto_op_batch batch;
-//     crypto_queue_->wait_dequeue(batch); // Blocking call
+  while(true) {
+    crypto_op_batch batch;
+    encrypt_queue_->wait_dequeue(batch); // Blocking call
 
-//     // if(!success) {
-//     //   // Timeout
-//     //   spdlog::info("Batch timeout");
-//     //   storage_iface->flush();
-//     //   continue;
-//     // }
+    // if(!success) {
+    //   // Timeout
+    //   spdlog::info("Batch timeout");
+    //   storage_iface->flush();
+    //   continue;
+    // }
 
-//      if (finished_.load()) {
-//       break;
-//     }
+     if (finished_.load()) {
+      break;
+    }
 
-//     for(auto &crypto_op : batch) {
-//         spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
+    for(auto &crypto_op : batch) {
+        spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
 
-       
+        auto l3_op = crypto_op.l3_op;
+        auto plaintext = l3_op.value;
 
-//         auto l3_op = crypto_op.l3_op;
-//         auto cipher = crypto_op.kv_response;
+        spdlog::debug("encrypting value. len={}", plaintext.size());
+        auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
 
-//         if(stats_) {
-//           int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-//           auto elapsed = us_from_epoch - l3_op.seq_id.ts;
-//           l3_op.seq_id.__set_diag(l3_op.seq_id.diag + std::to_string(elapsed) + ",");
-//           l3_op.seq_id.ts = us_from_epoch;
-//         }  
+        // Send PUT to KV
+        // l3_op.plaintext = plaintext;
+        storage_iface->async_put(l3_op.label, writeback_val, l3_op);
+    }
 
-//         spdlog::debug("decrypting value. len={}", cipher.size());
-//         auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
+    storage_iface->flush();
+  }
+}
 
-//         if (l3_op.value != "") {
-//           plaintext = l3_op.value;
-//         }
+void enc_proxy::decrypt_thread(encryption_engine *enc_engine) {
+  spdlog::info("Worker {}: Decryption thread started", idx_);
 
-//         spdlog::debug("encrypting value. len={}", plaintext.size());
-//         auto writeback_val = (encryption_enabled_)?(enc_engine->encrypt(plaintext)):(plaintext);
+  while(true) {
+    crypto_op_batch batch;
+    decrypt_queue_->wait_dequeue(batch); // Blocking call
 
-//         if(stats_) {
-//           int64_t us_from_epoch = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-//           auto elapsed = us_from_epoch - l3_op.seq_id.ts;
-//           l3_op.seq_id.__set_diag(l3_op.seq_id.diag + std::to_string(elapsed) + ",");
-//           l3_op.seq_id.ts = us_from_epoch;
-//         }
+    // if(!success) {
+    //   // Timeout
+    //   spdlog::info("Batch timeout");
+    //   storage_iface->flush();
+    //   continue;
+    // }
 
-//         // Send PUT to KV
-//         l3_op.plaintext = plaintext;
-//         storage_iface->async_put(l3_op.label, writeback_val, l3_op);
-//     }
+     if (finished_.load()) {
+      break;
+    }
 
-//     storage_iface->flush();
-//   }
-// }
+    for(auto &crypto_op : batch) {
+        spdlog::debug("recvd crypto op client_id:{}, seq_no:{}", crypto_op.l3_op.seq_id.client_id, crypto_op.l3_op.seq_id.client_seq_no);
+
+        auto l3_op = crypto_op.l3_op;
+        auto cipher = crypto_op.kv_response;
+
+        spdlog::debug("decrypting value. len={}", cipher.size());
+        auto plaintext = (encryption_enabled_)?(enc_engine->decrypt(cipher)):(cipher);
+
+        // TODO: Even this can be batched
+        client_response resp;
+        resp.seq_id = l3_op.seq_id;
+        resp.result = plaintext;
+        resp.op_code = OP_GET;
+        respond_queue_->push(resp);
+    }
+  }
+}
 
 void enc_proxy::responder_thread(){
     while (true){
