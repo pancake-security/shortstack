@@ -145,13 +145,15 @@ int64_t pancake_client::get(const std::string &key) {
     // int id = consistent_hash(key, num_servers_);
     // // Pick worker randomly
     // int wid = rand_uint32(0, RAND_MAX) % num_workers_;
-    int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
+    // int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
     // int idx = id*num_workers_ + wid;
+    sequence_num_ += 1;
+    int idx = sequence_num_ % l1_clients_.size();
 
     sequence_id seq;
     seq.client_id = client_id_;
     seq.client_seq_no = sequence_num_;
-    sequence_num_ += 1;
+    
     l1_clients_[idx]->async_get(seq, key);
     return seq.client_seq_no;
 }
@@ -161,13 +163,15 @@ int64_t pancake_client::put(const std::string &key, const std::string &value) {
     // int id = consistent_hash(key, num_servers_);
     // // Pick worker randomly
     // int wid = rand_uint32(0, RAND_MAX) % num_workers_;
-    int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
+    // int idx = rand_uint32(0, RAND_MAX) % l1_clients_.size();
     // int idx = id*num_workers_ + wid;
+    sequence_num_ += 1;
+    int idx = sequence_num_ % l1_clients_.size();
 
     sequence_id seq;
     seq.client_id = client_id_;
     seq.client_seq_no = sequence_num_;
-    sequence_num_ += 1;
+    
     l1_clients_[idx]->async_put(seq, key, value);
     return seq.client_seq_no;
 }
