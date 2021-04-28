@@ -146,6 +146,26 @@ void host_info::get_replicas(int type, int column, std::vector<host> &replicas) 
     std::sort(replicas.begin(), replicas.end(), [](host const & a, host const &b) {return a.row < b.row;});
 }
 
+int host_info::get_host_idx(int type, const std::string &hostname) {
+    std::vector<std::string> hostnames;
+  for(auto &h : hosts_) {
+      if(h.type == type) {
+          hostnames.push_back(h.hostname);
+      }  
+    }
+
+    std::sort(hostnames.begin(), hostnames.end());
+    hostnames.erase(std::unique( hostnames.begin(), hostnames.end() ), hostnames.end());
+    for(int i = 0; i < hostnames.size(); i++) 
+    {
+        if(hostnames[i] == hostname) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 int host_info::get_num_columns(int type, bool count_workers) {
     std::map<int, int> cols;
   for(auto &h : hosts_) {
