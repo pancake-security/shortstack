@@ -22,7 +22,7 @@ public:
 
 private:
     void create_replicas();
-    void insert_replicas(const std::string &key, int num_replicas);
+    void insert_replicas(const std::string &key, int num_replicas, const std::string &value_cipher);
 
     std::shared_ptr<distribution_info> dist_info_;
     encryption_engine encryption_engine_;
@@ -30,6 +30,8 @@ private:
     int label_count_;
     double alpha_;
     double delta_;
+
+    std::vector<std::string> labels_;
 
     std::shared_ptr<storage_interface> storage_interface_;
 };

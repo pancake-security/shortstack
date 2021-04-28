@@ -37,6 +37,8 @@ void initializer::create_replicas() {
     alpha_ = 1.0 / keys.size();
     delta_ = 0.5;
 
+    std::string value_cipher = encryption_engine_.encrypt(rand_str(object_size_));
+
     std::vector<double> fake_probabilities;
     int index = 0;
     for (auto key: keys) {
@@ -46,7 +48,7 @@ void initializer::create_replicas() {
         fake_probabilities.push_back(pi_f);
         dist_info_->key_to_number_of_replicas_[key] = r_i;
         // std::cout << "wrote to ktnr" << " " << r_i << std::endl;
-        insert_replicas(key, r_i);
+        insert_replicas(key, r_i, value_cipher);
         keys_created += r_i;
         index++;
     }
@@ -54,7 +56,11 @@ void initializer::create_replicas() {
     if(dummy_r_i != 0) {
         fake_probabilities.push_back((alpha_ / (1 / delta_ - 1)) * dummy_r_i);
         dist_info_->key_to_number_of_replicas_[dist_info_->dummy_key_] = dummy_r_i;
-        insert_replicas(dist_info_->dummy_key_, dummy_r_i);
+        insert_replicas(dist_info_->dummy_key_, dummy_r_i, value_cipher);
+    }
+
+    if (!labels_.empty()){
+        storage_interface_->put_batch(labels_, std::vector<std::string>(labels_.size(), value_cipher));
     }
 
     auto full_keys = keys;
@@ -63,22 +69,19 @@ void initializer::create_replicas() {
 }
 
 
-void initializer::insert_replicas(const std::string &key, int num_replicas){
-    std::string value_cipher = encryption_engine_.encrypt(rand_str(object_size_));
-    std::vector<std::string> labels;
+void initializer::insert_replicas(const std::string &key, int num_replicas, const std::string &value_cipher){
+    
+    // std::vector<std::string> labels;
     for (int i = 0; i < num_replicas; i++){
         std::string replica = key+std::to_string(i);
         std::string replica_cipher = std::to_string(label_count_);
         dist_info_->replica_to_label_[replica] = label_count_;
-        labels.push_back(std::to_string(label_count_));
-        if (labels.size() >= 50){
-            storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
-            labels.clear();
+        labels_.push_back(std::to_string(label_count_));
+        if (labels_.size() >= 50){
+            storage_interface_->put_batch(labels_, std::vector<std::string>(labels_.size(), value_cipher));
+            labels_.clear();
         }
         label_count_++;
-    }
-    if (!labels.empty()){
-        storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
     }
 }
 
