@@ -73,16 +73,16 @@ void enc_proxy::init_proxy(std::shared_ptr<host_info> hosts,
   if(kv_interaction_) {  
     
       storage_iface_ =
-          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb);
-      for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-      }
+          std::make_shared<redis_interface>(kv_hosts[local_idx].hostname, kv_hosts[local_idx].port, storage_batch_size_, get_cb, put_cb);
+      // for (int j = 1; j < kv_hosts.size(); j++) {
+      //   storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      // }
 
       storage_iface2_ =
-          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb);
-      for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-      }
+          std::make_shared<redis_interface>(kv_hosts[local_idx].hostname, kv_hosts[local_idx].port, storage_batch_size_, get_cb, put_cb);
+      // for (int j = 1; j < kv_hosts.size(); j++) {
+      //   storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      // }
 
 
       spdlog::info("Worker {}: Storage interfaces connected", idx_);

@@ -11,7 +11,7 @@ echo "Pushing bins"
 ./push_bins.sh
 
 echo "Gen + sync hosts file"
-python3 gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv $x 1 16 0 1 16 0 16 1 $x 1 1 1 1 0
+python3 gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv $x 16 1 0 1 16 0 16 1 $x 1 1 1 1 0
 sbin/sync.sh /local/deploy/hosts.csv
 
 echo "Starting redis"
