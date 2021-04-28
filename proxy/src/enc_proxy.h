@@ -96,7 +96,8 @@ private:
 
   void process_op(const l1_operation &op);
 
-  // void crypto_thread(encryption_engine *enc_engine);
+  void encrypt_thread(encryption_engine *enc_engine);
+  void decrypt_thread(encryption_engine *enc_engine);
   void responder_thread();
 
   // std::atomic<bool> finished_;
@@ -119,6 +120,12 @@ private:
   // Per-consumer thread state
   // std::vector<std::shared_ptr<queue<l3_operation>>> operation_queues_;
   std::shared_ptr<redis_interface> storage_iface_;
+  std::shared_ptr<redis_interface> storage_iface2_;
+
+  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>> encrypt_queue_;
+  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>> decrypt_queue_;
+
+  std::queue<l3_operation> internal_queue_;
 
   // Per-crypto thread state
   // std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>> crypto_queue_;
