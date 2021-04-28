@@ -9,10 +9,14 @@ rep=$4
 nredis=$5
 trace=$6
 objsz=$7
+nopushbins=$8
 
-echo "Pushing bins"
+if [[ "$pushbins" != "nopushbins" ]]
+then
+    echo "Pushing bins"
 
-./push_bins.sh
+    ./push_bins.sh
+fi
 
 echo "Gen + sync hosts file"
 python3 gen_hosts_file.py zedro.hosts /local/deploy/hosts.csv $nl1 1 16 $nl2 1 16 $nl3 16 1 $nredis 1 1 1 $rep $rep
