@@ -70,16 +70,18 @@ void enc_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   std::vector<host> kv_hosts;
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
-  if(kv_interaction_) {  
+  if(kv_interaction_) {
+
+    int redis_idx = hosts->get_host_idx(HOST_TYPE_L1, this_host.hostname);  
     
       storage_iface_ =
-          std::make_shared<redis_interface>(kv_hosts[local_idx].hostname, kv_hosts[local_idx].port, storage_batch_size_, get_cb, put_cb);
+          std::make_shared<redis_interface>(kv_hosts[redis_idx].hostname, kv_hosts[redis_idx].port, storage_batch_size_, get_cb, put_cb);
       // for (int j = 1; j < kv_hosts.size(); j++) {
       //   storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       // }
 
       storage_iface2_ =
-          std::make_shared<redis_interface>(kv_hosts[local_idx].hostname, kv_hosts[local_idx].port, storage_batch_size_, get_cb, put_cb);
+          std::make_shared<redis_interface>(kv_hosts[redis_idx].hostname, kv_hosts[redis_idx].port, storage_batch_size_, get_cb, put_cb);
       // for (int j = 1; j < kv_hosts.size(); j++) {
       //   storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
       // }
