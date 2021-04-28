@@ -16,7 +16,7 @@ void initializer::init(const distribution &real_dist, int object_size, std::shar
     std::vector<host> kv_hosts;
     hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
     storage_interface_ =
-        std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port);
+        std::make_shared<redis>(kv_hosts[0].hostname, kv_hosts[0].port, 50);
     for (int j = 1; j < kv_hosts.size(); j++) {
         storage_interface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
     }
@@ -71,15 +71,19 @@ void initializer::insert_replicas(const std::string &key, int num_replicas){
         std::string replica_cipher = std::to_string(label_count_);
         dist_info_->replica_to_label_[replica] = label_count_;
         labels.push_back(std::to_string(label_count_));
-        if (labels.size() >= 50){
-            storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
-            labels.clear();
+        for(auto lab : labels) {
+            storage_interface_->async_put(lab, value_cipher, []{});
         }
+        // if (labels.size() >= 50){
+        //     storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
+        //     labels.clear();
+        // }
         label_count_++;
     }
-    if (!labels.empty()){
-        storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
-    }
+    // if (!labels.empty()){
+    //     storage_interface_->put_batch(labels, std::vector<std::string>(labels.size(), value_cipher));
+    // }
+    storage_interface_->flush();
 }
 
 
