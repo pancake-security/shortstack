@@ -2,6 +2,7 @@
 
 #include "MurmurHash2.h"
 #include "consistent_hash.h"
+#include <spdlog/spdlog.h>
 
 l3proxy_interface::l3proxy_interface(std::shared_ptr<host_info> hinfo) {
   hosts_ = hinfo;
