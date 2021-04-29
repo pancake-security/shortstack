@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
     std::string hosts_file;
     bool debug_mode = false;
     int monitor_us = 1000;
-    while ((o = getopt(argc, argv, "h:t:n:o:q:g")) != -1) {
+    while ((o = getopt(argc, argv, "h:t:n:o:q:gm:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -288,6 +288,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'g':
                 debug_mode = true;
+                break;
+            case 'm':
+                monitor_us = std::atoi(optarg);
                 break;
             default:
                 usage();
