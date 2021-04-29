@@ -631,7 +631,8 @@ int l3_main(int argc, char *argv[]) {
     bool stats = false;
     int ack_batch_size = 1;
     int64_t timeout_us = 1000000;
-    while ((o = getopt(argc, argv, "h:i:s:gc:prkaly:")) != -1) {
+    bool multi_threaded = false;
+    while ((o = getopt(argc, argv, "h:i:s:gc:prkaly:m")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -665,6 +666,9 @@ int l3_main(int argc, char *argv[]) {
                 break;
             case 'y':
                 ack_batch_size = std::atoi(optarg);
+                break;
+            case 'm':
+                multi_threaded = true;
                 break;
             default:
                 l3_usage();
@@ -713,6 +717,10 @@ int l3_main(int argc, char *argv[]) {
     
     for(int i = 0; i < num_workers; i++) {
         wait_for_server_start(proxy_host, proxy_port + i);
+    }
+
+    if(multi_threaded) {
+        cpp_redis::network::set_default_nb_workers(num_workers);
     }
 
     std::cout << "Proxy server is reachable" << std::endl;
