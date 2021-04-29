@@ -54,6 +54,17 @@ void proxy_manager::setup_reverse_connections() {
     
 }
 
+void proxy_manager::fail_host(std::string hostname) {
+    std::vector<host> all_hosts;
+    hosts_->get_hosts_by_type(-1, all_hosts);
+
+    for(auto &h : all_hosts) {
+        if(h.hostname == hostname) {
+            fail_node(h.instance_name);
+        }
+    }
+}
+
 void proxy_manager::fail_node(std::string instance_name) {
     host failed_host;
     if(!hosts_->get_host(instance_name, failed_host)) {

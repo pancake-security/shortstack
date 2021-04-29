@@ -40,6 +40,9 @@ public:
 
     void fail_node(std::string instance_name);
 
+    // Fail all nodes running on a given host
+    void fail_host(std::string hostname);
+
 
 private:
 
