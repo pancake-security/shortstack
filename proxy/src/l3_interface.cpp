@@ -67,4 +67,6 @@ void l3proxy_interface::remove_connection(int column) {
   transports_.erase(transports_.begin() + column);
   sockets_.erase(sockets_.begin() + column);
 
+  spdlog::info("Removed L3 connection, column: {}, clients_.size = {}", column, clients_.size());
+
 }
