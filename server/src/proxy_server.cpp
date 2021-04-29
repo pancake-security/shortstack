@@ -871,6 +871,7 @@ int manager_main(int argc, char *argv[]) {
             case 'k':
                 fail_host = std::string(optarg);
                 host_failure = true;
+                break;
             default:
                 manager_usage();
                 exit(-1);
