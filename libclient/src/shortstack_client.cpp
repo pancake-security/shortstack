@@ -154,6 +154,9 @@ void shortstack_client::response_thread(int idx) {
             resp.sequence_num = readers_[idx].recv_response(_return);
         } catch(apache::thrift::transport::TTransportException e){
             std::cerr << e.what() << std::endl;
+            if(e.what() == "No more data to read.") {
+                break;
+            }
             continue;
         }
 
