@@ -55,7 +55,7 @@ void load_trace(const std::string &trace_location, trace_vector &trace) {
 
 void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int client_batch_size,
                 trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int queue_depth,
-                std::vector<std::string> &diags) {
+                std::vector<std::string> &diags, std::atomic<uint64_t> &total_op_count) {
     int ops = 0;
     uint64_t start, end;
     auto ticks_per_ns = static_cast<double>(rdtscuhz()) / 1000;
@@ -111,6 +111,7 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
             latencies.push_back((cycles / ticks_per_ns)/1000);
             diags.push_back(diag);
         }
+        total_op_count++;
         ops += 1;
 
         spdlog::debug("recvd response client_id:{}, seq_no:{}", client.get_client_id(), seq);
@@ -147,18 +148,18 @@ void run_benchmark(int run_time, bool stats, std::vector<int> &latencies, int cl
 }
 
 void warmup(std::vector<int> &latencies, int client_batch_size,
-            trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
+            trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd, std::atomic<uint64_t> &total_op_count) {
                 std::vector<std::string> dummy;
-    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy);
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy, total_op_count);
 }
 
 void cooldown(std::vector<int> &latencies, int client_batch_size,
-               trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd) {
+               trace_vector &trace, std::atomic<int> &xput, shortstack_client& client, int qd, std::atomic<uint64_t> &total_op_count) {
                    std::vector<std::string> dummy;
-    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy);
+    run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy, total_op_count);
 }
 
-void client(int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies, std::vector<std::string> &diags) {
+void client(int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies, std::vector<std::string> &diags, std::atomic<uint64_t> &total_op_count) {
     shortstack_client client;
     client.init(idx, hinfo);
 
@@ -167,9 +168,9 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     std::atomic_init(&indiv_xput, 0);
     // std::vector<int> latencies;
     std::cout << "Beginning warmup" << std::endl;
-    warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
+    warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
     std::cout << "Beginning benchmark" << std::endl;
-    run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth, diags);
+    run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth, diags, total_op_count);
     std::string location = output_path + "-client" + std::to_string(idx)+ ".lat";
     std::ofstream out(location);
     std::string line("");
@@ -182,7 +183,7 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     out << line;
     xput += indiv_xput;
     std::cout << "Beginning cooldown" << std::endl;
-    cooldown(latencies, client_batch_size, trace, indiv_xput, client, queue_depth);
+    cooldown(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
 
     client.finish();
 }
@@ -208,6 +209,49 @@ int _mkdir(const char *path) {
     #endif
 }
 
+void sleep_nanos(long delay);
+// Yield for certain number of nanoseconds
+// delay should not exceed 1e9 micros
+void sleep_nanos(long delay)
+{
+ struct timespec tv;
+ /* Construct the timespec from the number of whole seconds... */
+ tv.tv_sec = 0;
+ /* ... and the remainder in nanoseconds. */
+ tv.tv_nsec = delay;
+
+ while (1)
+ {
+  /* Sleep for the time specified in tv. If interrupted by a
+    signal, place the remaining time left to sleep back into tv. */
+  int rval = nanosleep (&tv, &tv);
+  if (rval == 0)
+   /* Completed the entire sleep time; all done. */
+   return;
+  else if (errno == EINTR)
+   /* Interrupted by a signal. Try again. */
+   continue;
+  else 
+  {
+	/* Some other error; bail out. */
+	fprintf(stderr, "nanesleep failed\n");
+	exit(1);
+  }
+
+ }
+}
+
+void monitor_xput(std::atomic<uint64_t>& total_op_count, std::atomic<bool>& done, int sleep_us, std::vector<int>& inst_xput) {
+    uint64_t prev_count = 0;
+    while(!done.load()) {
+        auto cur = total_op_count.load();
+        inst_xput.push_back(cur - prev_count);
+        prev_count = cur;
+
+        sleep_nanos(sleep_us * 1000);
+    }
+}
+
 int main(int argc, char *argv[]) {
     std::string trace_location = "";
     int client_batch_size = 1;
@@ -224,6 +268,7 @@ int main(int argc, char *argv[]) {
     int o;
     std::string hosts_file;
     bool debug_mode = false;
+    int monitor_us = 1000;
     while ((o = getopt(argc, argv, "h:t:n:o:q:g")) != -1) {
         switch (o) {
             case 'h':
@@ -287,16 +332,44 @@ int main(int argc, char *argv[]) {
         client_diags.push_back(d);
     }
 
+    std::atomic<uint64_t> total_op_count_;
+    total_op_count_.store(0);
+
+    std::atomic<bool> done;
+    done.store(false);
+
 
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
         threads.push_back(std::thread(client, base_client_id + i, client_batch_size, std::ref(trace),
                           output_path, hinfo, std::ref(xput), queue_depth, std::ref(client_lats[i]),
-                          std::ref(client_diags[i])));
+                          std::ref(client_diags[i]), std::ref(total_op_count_)));
     }
+
+    std::vector<int> inst_xput; 
+    std::thread monitor(monitor_xput, std::ref(total_op_count_), std::ref(done), monitor_us, std::ref(inst_xput));
+
     for (int i = 0; i < num_clients; i++)
         threads[i].join();
+
+    done.store(true);
+
+    monitor.join();
+    
     std::cout << "Xput was: " << xput << std::endl;
+
+    std::string location = output_path + ".xput";
+    std::ofstream out(location);
+    std::string line("");
+    for (int i = 0; i < inst_xput.size(); i++) {
+        double xp = ((double)inst_xput[i] * 1e6)/monitor_us;
+        line.append(std::to_string(xp) + "\n");
+        out << line;
+        line.clear();
+    }
+
+    out.flush();
+    out.close();
 
     double lat_sum = 0;
     double lat_count = 0;
