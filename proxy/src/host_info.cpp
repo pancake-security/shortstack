@@ -131,7 +131,7 @@ bool host_info::get_host(const std::string &instance_name, host& out) {
 
 void host_info::get_hosts_by_type(int type, std::vector<host> &hosts) {
     for(auto &h : hosts_) {
-      if(h.type == type) {
+      if(type == -1 || h.type == type) {
           hosts.push_back(h);
       }  
     }
