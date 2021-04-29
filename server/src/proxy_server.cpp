@@ -846,6 +846,7 @@ void manager_usage() {
 
     std::cout << "\t -h: Hosts file\n";
     std::cout << "\t -f: Instance name to fail\n";
+    std::cout << "\t -k: hostname to fail\n";
     std::cout << "\t -s: Setup reverse connections\n";
 }
 
@@ -854,7 +855,9 @@ int manager_main(int argc, char *argv[]) {
     std::string fail_node;
     int o;
     bool setup = false;
-    while ((o = getopt(argc, argv, "h:f:s")) != -1) {
+    std::string fail_host;
+    bool host_failure = false;
+    while ((o = getopt(argc, argv, "h:f:sk:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -865,6 +868,9 @@ int manager_main(int argc, char *argv[]) {
             case 's':
                 setup = true;
                 break;
+            case 'k':
+                fail_host = std::string(optarg);
+                host_failure = true;
             default:
                 manager_usage();
                 exit(-1);
@@ -883,6 +889,8 @@ int manager_main(int argc, char *argv[]) {
 
     if(setup) {
         manager->setup_reverse_connections();
+    } else if (host_failure) {
+        manager->fail_host(fail_host);
     } else {
         manager->fail_node(fail_node);
     }
