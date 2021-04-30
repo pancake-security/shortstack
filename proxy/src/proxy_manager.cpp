@@ -83,16 +83,33 @@ void proxy_manager::fail_host(std::string hostname) {
 
     for(auto &h : all_hosts) {
         if(h.hostname == hostname) {
-            fail_node(h.instance_name);
+            fail_node(h.instance_name, 5);
         }
     }
 }
 
-void proxy_manager::fail_node(std::string instance_name) {
+void proxy_manager::crash_host(host *h) {
+    
+    auto client = get_block_client(h->hostname, h->port);
+    
+    // Send kill code
+    sequence_id seq;
+    seq.client_id = -1995;
+    seq.client_seq_no = -1995;
+    client->external_ack(seq);
+
+}
+
+void proxy_manager::fail_node(std::string instance_name, int delay_sec) {
     host failed_host;
     if(!hosts_->get_host(instance_name, failed_host)) {
         throw std::runtime_error("Invalid instance name");
     }
+
+    sleep(delay_sec);
+
+    // Fail the node
+    crash_host(&failed_host);
 
     if(failed_host.type == HOST_TYPE_L1) {
         std::vector<host> replicas;
