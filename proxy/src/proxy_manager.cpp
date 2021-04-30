@@ -24,8 +24,10 @@ void proxy_manager::init(std::shared_ptr<host_info> hosts) {
     std::vector<host> all_hosts;
     hosts_->get_hosts_by_type(-1, all_hosts);
     for(auto &h : all_hosts) {
-        for(int i = 0; i < h.num_workers; i++) {
-            get_block_client(h.hostname, h.port + i);
+        if(h.type == HOST_TYPE_L1 || h.type == HOST_TYPE_L2 || h.type == HOST_TYPE_L3) {
+            for(int i = 0; i < h.num_workers; i++) {
+                get_block_client(h.hostname, h.port + i);
+            }
         }
     }
 
