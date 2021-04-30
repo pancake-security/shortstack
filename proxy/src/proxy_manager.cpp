@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iterator>
 #include <chrono>
+#include <future>
 #include <spdlog/spdlog.h>
 
 #include "proxy_manager.h"
@@ -106,7 +107,7 @@ void proxy_manager::fail_node(std::string instance_name) {
             spdlog::info("setup chain on {}", prev.instance_name);
             setup_chain(&prev, "/", role, next_replica);
             spdlog::info("resend pending on {}", prev.instance_name);
-            resend_pending(&prev);
+            resend_pending(&prev, next_replica);
         }
 
     } else if(failed_host.type == HOST_TYPE_L2) {
@@ -130,6 +131,7 @@ void proxy_manager::fail_node(std::string instance_name) {
             }
 
             host *next_replica = (prev_idx == fixed_replicas.size() - 1) ? nullptr : &fixed_replicas[prev_idx + 1];
+
             auto start_ts = std::chrono::high_resolution_clock::now();
             setup_chain(&prev, "/", role, next_replica);
             auto end_ts = std::chrono::high_resolution_clock::now();
@@ -137,7 +139,7 @@ void proxy_manager::fail_node(std::string instance_name) {
             spdlog::info("setup chain on {}, dur: {}", prev.instance_name, elapsed_tim);
 
             start_ts = std::chrono::high_resolution_clock::now();
-            resend_pending(&prev);
+            resend_pending(&prev, next_replica);
             end_ts = std::chrono::high_resolution_clock::now();
             elapsed_tim = std::chrono::duration_cast<std::chrono::microseconds>(end_ts - start_ts).count();
             spdlog::info("resend pending on {}, dur: {}", prev.instance_name, elapsed_tim);
@@ -165,7 +167,8 @@ void proxy_manager::fail_node(std::string instance_name) {
                 std::vector<host> replicas;
                 hosts_->get_replicas(HOST_TYPE_L1, i, replicas);
                 host l1_tail = replicas.back();
-                resend_pending(&l1_tail);
+                // TODO: needs to be updated
+                resend_pending(&l1_tail, nullptr);
             }
 
         }
@@ -229,7 +232,40 @@ void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host
     }
 }
 
-void proxy_manager::resend_pending(host *h) {
+void proxy_manager::resend_pending(host *h, host *next) {
+
+    std::vector<int64_t> cur_seqs;
+    for(int i = 0; i < h->num_workers; i++) {
+        cur_seqs.push_back(-1);
+    } 
+    
+    if(next != nullptr) {
+        // Fetch current sequence number of successor
+        std::vector<std::future<int64_t>> seqs;
+        for(int i = 0; i < h->num_workers; i++) {
+            seqs.push_back(std::async([=](){
+                 auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+                auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+                auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+                auto client = std::make_shared<block_request_serviceClient>(protocol);
+                transport->open();
+
+                int64_t res = client->fetch_seq(i);
+                
+                transport->close();
+
+                return res; 
+            }));
+        } 
+
+        for(int i = 0; i < h->num_workers; i++) {
+            cur_seqs[i] = seqs[i].get();
+        }
+
+        spdlog::info("Fetched successor sequence numbers");
+    }
+
+    
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
         threads.push_back(std::thread([=]() {
@@ -240,7 +276,7 @@ void proxy_manager::resend_pending(host *h) {
             transport->open();
 
             std::vector<std::string> dummy_chain;
-            client->resend_pending(i);
+            client->resend_pending(i, cur_seqs[i]);
 
             transport->close();
         }));

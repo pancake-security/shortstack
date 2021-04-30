@@ -21,8 +21,9 @@ service block_request_service {
 
   // Management
   void setup_chain(1: i32 block_id, 2: string path, 6: list<string> chain, 7: i32 chain_role, 8: string next_block_id),
-  void resend_pending(1: i32 block_id),
+  void resend_pending(1: i32 block_id, 2: i64 successor_seq),
   void update_connections(1: i32 type, 2: i32 column, 3: string hostname, 4: i32 port, 5: i32 num_workers),
+  i64 fetch_seq(1: i32 block_id),
 }
 
 service block_response_service {

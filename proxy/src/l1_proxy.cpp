@@ -379,7 +379,9 @@ void l1_proxy::setup_chain_stub(const int32_t block_id, const std::string& path,
 }
 
 void l1_proxy::resend_pending_stub(const int32_t block_id) {
-  resend_pending();
+  // resend_pending();
+  spdlog::error("Not supposed to be called");
+  throw std::logic_error("Not supposed to be called");
 }
 
 void l1_proxy::external_ack(const sequence_id& seq) {

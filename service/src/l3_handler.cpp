@@ -38,7 +38,12 @@ void l3_handler::setup_chain(const int32_t block_id, const std::string& path, co
   throw std::logic_error("Not implemented"); 
 }
 
-void l3_handler::resend_pending(const int32_t block_id) {
+int64_t l3_handler::fetch_seq(const int32_t block_id) {
+  throw std::logic_error("Not implemented");
+  return -1;
+}
+
+void l3_handler::resend_pending(const int32_t block_id, const int64_t successor_seq) {
   throw std::logic_error("Not implemented"); 
 }
 

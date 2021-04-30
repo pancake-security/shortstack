@@ -313,7 +313,10 @@ class chain_module {
   /**
    * @brief Resend the pending request
    */
-  void resend_pending();
+  void resend_pending(const int64_t successor_seq);
+
+  // Fetch current sequence number
+  int64_t fetch_seq();
 
   /**
    * @brief Virtual function for forwarding all

@@ -29,8 +29,12 @@ void l2_handler::setup_chain(const int32_t block_id, const std::string& path, co
     proxy_->setup(path, chain, (chain_role) role, next_block_id);
 }
     
-void l2_handler::resend_pending(const int32_t block_id) {
-    proxy_->resend_pending();
+void l2_handler::resend_pending(const int32_t block_id, const int64_t successor_seq) {
+    proxy_->resend_pending(successor_seq);
+}
+
+int64_t l2_handler::fetch_seq(const int32_t block_id) {
+    return proxy_->fetch_seq();
 }
 
 void l2_handler::update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
