@@ -53,6 +53,7 @@ void chain_module::setup(const std::string &path,
 
 // TODO: resend pending requests in sequence number order
 void chain_module::resend_pending() {
+  int count = 0;
   auto ops = pending_.lock_table();
   try {
     std::vector<std::pair<int64_t, chain_op>> op_list;
@@ -66,6 +67,7 @@ void chain_module::resend_pending() {
     });
 
     for (const auto &op: op_list) {
+      count += 1;
       if(is_tail()) {
         replication_complete(op.second.seq, op.second.args);
       } else {
@@ -77,7 +79,7 @@ void chain_module::resend_pending() {
     std::rethrow_exception(std::current_exception());
   }
   ops.unlock();
-  spdlog::info("Resent pending requests");
+  spdlog::info("Resent pending requests, count: {}", count);
 }
 
 void chain_module::ack(const sequence_id &seq) {
