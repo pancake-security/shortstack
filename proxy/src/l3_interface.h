@@ -14,6 +14,9 @@
 #include "proxy_types.h"
 #include "host_info.h"
 
+// TODO: Hack
+#define L3_NUM_CORES 16
+
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
