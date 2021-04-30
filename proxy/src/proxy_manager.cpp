@@ -244,7 +244,7 @@ void proxy_manager::resend_pending(host *h, host *next) {
         std::vector<std::future<int64_t>> seqs;
         for(int i = 0; i < h->num_workers; i++) {
             seqs.push_back(std::async([=](){
-                 auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+                 auto socket = std::make_shared<TSocket>(next->hostname, next->port + i);
                 auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
                 auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
                 auto client = std::make_shared<block_request_serviceClient>(protocol);
