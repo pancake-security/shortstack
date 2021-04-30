@@ -27,7 +27,9 @@ public:
 
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id);
     
-  void resend_pending(const int32_t block_id);
+  void resend_pending(const int32_t block_id, const int64_t successor_seq);
+    
+  int64_t fetch_seq(const int32_t block_id);
 
   void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
 

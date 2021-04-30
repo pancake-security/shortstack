@@ -88,10 +88,14 @@ void thrift_handler::chain_request(const sequence_id& seq, const int32_t block_i
 void thrift_handler::setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t role, const std::string& next_block_id) {
     proxy_->setup_chain_stub(block_id, path, chain, role, next_block_id);
 }
-    
-void thrift_handler::resend_pending(const int32_t block_id) {
-    proxy_->resend_pending_stub(block_id);
+
+void thrift_handler::resend_pending(const int32_t block_id, const int64_t successor_seq) {
+    throw std::runtime_error("Not implemented");
 }
+    
+// void thrift_handler::resend_pending(const int32_t block_id) {
+//     proxy_->resend_pending_stub(block_id);
+// }
 
 void thrift_handler::update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
     throw std::runtime_error("Not implemented");
@@ -103,4 +107,8 @@ void thrift_handler::external_ack(const sequence_id& seq) {
 
 void thrift_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {
     throw std::runtime_error("Not implemented");
+}
+int64_t thrift_handler::fetch_seq(const int32_t block_id) {
+    throw std::runtime_error("Not implemented");
+    return -1;
 }

@@ -48,7 +48,7 @@ private:
 
     int get_idx(const host &h, const std::vector<host> &list);
     void setup_chain(host *h, std::string path, chain_role role, host *next);
-    void resend_pending(host *h);
+    void resend_pending(host *h, host* next);
     void update_connections(host *h, int type, int column, host *target);
     void selective_resend_pending(host *h, int column, int num_columns);
 

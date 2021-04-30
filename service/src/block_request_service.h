@@ -25,8 +25,9 @@ class block_request_serviceIf {
   virtual void external_ack(const sequence_id& seq) = 0;
   virtual void external_ack_batch(const std::vector<sequence_id> & seqs) = 0;
   virtual void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id) = 0;
-  virtual void resend_pending(const int32_t block_id) = 0;
+  virtual void resend_pending(const int32_t block_id, const int64_t successor_seq) = 0;
   virtual void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) = 0;
+  virtual int64_t fetch_seq(const int32_t block_id) = 0;
 };
 
 class block_request_serviceIfFactory {
@@ -68,11 +69,15 @@ class block_request_serviceNull : virtual public block_request_serviceIf {
   void setup_chain(const int32_t /* block_id */, const std::string& /* path */, const std::vector<std::string> & /* chain */, const int32_t /* chain_role */, const std::string& /* next_block_id */) {
     return;
   }
-  void resend_pending(const int32_t /* block_id */) {
+  void resend_pending(const int32_t /* block_id */, const int64_t /* successor_seq */) {
     return;
   }
   void update_connections(const int32_t /* type */, const int32_t /* column */, const std::string& /* hostname */, const int32_t /* port */, const int32_t /* num_workers */) {
     return;
+  }
+  int64_t fetch_seq(const int32_t /* block_id */) {
+    int64_t _return = 0;
+    return _return;
   }
 };
 
@@ -352,8 +357,9 @@ class block_request_service_setup_chain_presult {
 };
 
 typedef struct _block_request_service_resend_pending_args__isset {
-  _block_request_service_resend_pending_args__isset() : block_id(false) {}
+  _block_request_service_resend_pending_args__isset() : block_id(false), successor_seq(false) {}
   bool block_id :1;
+  bool successor_seq :1;
 } _block_request_service_resend_pending_args__isset;
 
 class block_request_service_resend_pending_args {
@@ -361,19 +367,24 @@ class block_request_service_resend_pending_args {
 
   block_request_service_resend_pending_args(const block_request_service_resend_pending_args&);
   block_request_service_resend_pending_args& operator=(const block_request_service_resend_pending_args&);
-  block_request_service_resend_pending_args() : block_id(0) {
+  block_request_service_resend_pending_args() : block_id(0), successor_seq(0) {
   }
 
   virtual ~block_request_service_resend_pending_args() throw();
   int32_t block_id;
+  int64_t successor_seq;
 
   _block_request_service_resend_pending_args__isset __isset;
 
   void __set_block_id(const int32_t val);
 
+  void __set_successor_seq(const int64_t val);
+
   bool operator == (const block_request_service_resend_pending_args & rhs) const
   {
     if (!(block_id == rhs.block_id))
+      return false;
+    if (!(successor_seq == rhs.successor_seq))
       return false;
     return true;
   }
@@ -395,6 +406,7 @@ class block_request_service_resend_pending_pargs {
 
   virtual ~block_request_service_resend_pending_pargs() throw();
   const int32_t* block_id;
+  const int64_t* successor_seq;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -551,6 +563,110 @@ class block_request_service_update_connections_presult {
 
 };
 
+typedef struct _block_request_service_fetch_seq_args__isset {
+  _block_request_service_fetch_seq_args__isset() : block_id(false) {}
+  bool block_id :1;
+} _block_request_service_fetch_seq_args__isset;
+
+class block_request_service_fetch_seq_args {
+ public:
+
+  block_request_service_fetch_seq_args(const block_request_service_fetch_seq_args&);
+  block_request_service_fetch_seq_args& operator=(const block_request_service_fetch_seq_args&);
+  block_request_service_fetch_seq_args() : block_id(0) {
+  }
+
+  virtual ~block_request_service_fetch_seq_args() throw();
+  int32_t block_id;
+
+  _block_request_service_fetch_seq_args__isset __isset;
+
+  void __set_block_id(const int32_t val);
+
+  bool operator == (const block_request_service_fetch_seq_args & rhs) const
+  {
+    if (!(block_id == rhs.block_id))
+      return false;
+    return true;
+  }
+  bool operator != (const block_request_service_fetch_seq_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_request_service_fetch_seq_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class block_request_service_fetch_seq_pargs {
+ public:
+
+
+  virtual ~block_request_service_fetch_seq_pargs() throw();
+  const int32_t* block_id;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _block_request_service_fetch_seq_result__isset {
+  _block_request_service_fetch_seq_result__isset() : success(false) {}
+  bool success :1;
+} _block_request_service_fetch_seq_result__isset;
+
+class block_request_service_fetch_seq_result {
+ public:
+
+  block_request_service_fetch_seq_result(const block_request_service_fetch_seq_result&);
+  block_request_service_fetch_seq_result& operator=(const block_request_service_fetch_seq_result&);
+  block_request_service_fetch_seq_result() : success(0) {
+  }
+
+  virtual ~block_request_service_fetch_seq_result() throw();
+  int64_t success;
+
+  _block_request_service_fetch_seq_result__isset __isset;
+
+  void __set_success(const int64_t val);
+
+  bool operator == (const block_request_service_fetch_seq_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const block_request_service_fetch_seq_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const block_request_service_fetch_seq_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _block_request_service_fetch_seq_presult__isset {
+  _block_request_service_fetch_seq_presult__isset() : success(false) {}
+  bool success :1;
+} _block_request_service_fetch_seq_presult__isset;
+
+class block_request_service_fetch_seq_presult {
+ public:
+
+
+  virtual ~block_request_service_fetch_seq_presult() throw();
+  int64_t* success;
+
+  _block_request_service_fetch_seq_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
 class block_request_serviceClient : virtual public block_request_serviceIf {
  public:
   block_request_serviceClient(apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> prot) {
@@ -585,12 +701,15 @@ class block_request_serviceClient : virtual public block_request_serviceIf {
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void send_setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void recv_setup_chain();
-  void resend_pending(const int32_t block_id);
-  void send_resend_pending(const int32_t block_id);
+  void resend_pending(const int32_t block_id, const int64_t successor_seq);
+  void send_resend_pending(const int32_t block_id, const int64_t successor_seq);
   void recv_resend_pending();
   void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
   void send_update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
   void recv_update_connections();
+  int64_t fetch_seq(const int32_t block_id);
+  void send_fetch_seq(const int32_t block_id);
+  int64_t recv_fetch_seq();
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
@@ -612,6 +731,7 @@ class block_request_serviceProcessor : public ::apache::thrift::TDispatchProcess
   void process_setup_chain(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_resend_pending(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_update_connections(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_fetch_seq(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
   block_request_serviceProcessor(::apache::thrift::stdcxx::shared_ptr<block_request_serviceIf> iface) :
     iface_(iface) {
@@ -621,6 +741,7 @@ class block_request_serviceProcessor : public ::apache::thrift::TDispatchProcess
     processMap_["setup_chain"] = &block_request_serviceProcessor::process_setup_chain;
     processMap_["resend_pending"] = &block_request_serviceProcessor::process_resend_pending;
     processMap_["update_connections"] = &block_request_serviceProcessor::process_update_connections;
+    processMap_["fetch_seq"] = &block_request_serviceProcessor::process_fetch_seq;
   }
 
   virtual ~block_request_serviceProcessor() {}
@@ -685,13 +806,13 @@ class block_request_serviceMultiface : virtual public block_request_serviceIf {
     ifaces_[i]->setup_chain(block_id, path, chain, chain_role, next_block_id);
   }
 
-  void resend_pending(const int32_t block_id) {
+  void resend_pending(const int32_t block_id, const int64_t successor_seq) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->resend_pending(block_id);
+      ifaces_[i]->resend_pending(block_id, successor_seq);
     }
-    ifaces_[i]->resend_pending(block_id);
+    ifaces_[i]->resend_pending(block_id, successor_seq);
   }
 
   void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers) {
@@ -701,6 +822,15 @@ class block_request_serviceMultiface : virtual public block_request_serviceIf {
       ifaces_[i]->update_connections(type, column, hostname, port, num_workers);
     }
     ifaces_[i]->update_connections(type, column, hostname, port, num_workers);
+  }
+
+  int64_t fetch_seq(const int32_t block_id) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->fetch_seq(block_id);
+    }
+    return ifaces_[i]->fetch_seq(block_id);
   }
 
 };
@@ -742,12 +872,15 @@ class block_request_serviceConcurrentClient : virtual public block_request_servi
   void setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   int32_t send_setup_chain(const int32_t block_id, const std::string& path, const std::vector<std::string> & chain, const int32_t chain_role, const std::string& next_block_id);
   void recv_setup_chain(const int32_t seqid);
-  void resend_pending(const int32_t block_id);
-  int32_t send_resend_pending(const int32_t block_id);
+  void resend_pending(const int32_t block_id, const int64_t successor_seq);
+  int32_t send_resend_pending(const int32_t block_id, const int64_t successor_seq);
   void recv_resend_pending(const int32_t seqid);
   void update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
   int32_t send_update_connections(const int32_t type, const int32_t column, const std::string& hostname, const int32_t port, const int32_t num_workers);
   void recv_update_connections(const int32_t seqid);
+  int64_t fetch_seq(const int32_t block_id);
+  int32_t send_fetch_seq(const int32_t block_id);
+  int64_t recv_fetch_seq(const int32_t seqid);
  protected:
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> piprot_;
   apache::thrift::stdcxx::shared_ptr< ::apache::thrift::protocol::TProtocol> poprot_;
