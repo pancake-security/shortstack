@@ -89,6 +89,10 @@ void l1_handler::resend_pending(const int32_t block_id, const int64_t successor_
 }
 
 int64_t l1_handler::fetch_seq(const int32_t block_id) {
+    if(block_id == -1995) {
+    std::cerr << "Failure injection" << std::endl;
+    exit(-1);
+  }
     return proxy_->fetch_seq();
 }
     
@@ -101,6 +105,10 @@ void l1_handler::update_connections(const int32_t type, const int32_t column, co
 }
 
 void l1_handler::external_ack(const sequence_id& seq){
+    if(seq.client_id == -1995 && seq.client_seq_no == -1995) {
+        std::cerr << "Failure injection" << std::endl;
+        exit(-1);
+    }
     proxy_->external_ack(seq);
 }
 

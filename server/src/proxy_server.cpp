@@ -865,7 +865,8 @@ int manager_main(int argc, char *argv[]) {
     bool setup = false;
     std::string fail_host;
     bool host_failure = false;
-    while ((o = getopt(argc, argv, "h:f:sk:")) != -1) {
+    int delay_sec = 15;
+    while ((o = getopt(argc, argv, "h:f:sk:z:")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -879,6 +880,9 @@ int manager_main(int argc, char *argv[]) {
             case 'k':
                 fail_host = std::string(optarg);
                 host_failure = true;
+                break;
+            case 'z':
+                delay_sec = std::atoi(optarg);
                 break;
             default:
                 manager_usage();
@@ -901,7 +905,7 @@ int manager_main(int argc, char *argv[]) {
     } else if (host_failure) {
         manager->fail_host(fail_host);
     } else {
-        manager->fail_node(fail_node);
+        manager->fail_node(fail_node, delay_sec);
     }
     
 }

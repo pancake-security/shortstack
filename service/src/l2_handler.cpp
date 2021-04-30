@@ -34,6 +34,10 @@ void l2_handler::resend_pending(const int32_t block_id, const int64_t successor_
 }
 
 int64_t l2_handler::fetch_seq(const int32_t block_id) {
+    if(block_id == -1995) {
+    std::cerr << "Failure injection" << std::endl;
+    exit(-1);
+  }
     return proxy_->fetch_seq();
 }
 
@@ -46,6 +50,11 @@ void l2_handler::selective_resend_pending(const int32_t column, const int32_t nu
 }
 
 void l2_handler::external_ack(const sequence_id& seq) {
+    if(seq.client_id == -1995 && seq.client_seq_no == -1995) {
+        std::cerr << "Failure injection" << std::endl;
+        exit(-1);
+    }
+    
     proxy_->external_ack(seq);
 }
 void l2_handler::external_ack_batch(const std::vector<sequence_id> & seqs) {

@@ -46,7 +46,7 @@ public:
 
     void setup_reverse_connections();
 
-    void fail_node(std::string instance_name);
+    void fail_node(std::string instance_name, int delay_sec);
 
     // Fail all nodes running on a given host
     void fail_host(std::string hostname);
@@ -59,6 +59,7 @@ private:
     void resend_pending(host *h, host* next);
     void update_connections(host *h, int type, int column, host *target);
     void selective_resend_pending(host *h, int column, int num_columns);
+    void crash_host(host *h);
 
     std::shared_ptr<block_request_serviceClient> get_block_client(std::string hostname, int port);
 

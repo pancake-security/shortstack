@@ -39,6 +39,11 @@ void l3_handler::setup_chain(const int32_t block_id, const std::string& path, co
 }
 
 int64_t l3_handler::fetch_seq(const int32_t block_id) {
+  if(block_id == -1995) {
+    std::cerr << "Failure injection" << std::endl;
+    exit(-1);
+  }
+
   throw std::logic_error("Not implemented");
   return -1;
 }
@@ -52,6 +57,11 @@ void l3_handler::update_connections(const int32_t type, const int32_t column, co
 }
 
 void l3_handler::external_ack(const sequence_id& seq) {
+  if(seq.client_id == -1995 && seq.client_seq_no == -1995) {
+        std::cerr << "Failure injection" << std::endl;
+        exit(-1);
+    }
+    
   throw std::logic_error("Not implemented"); 
 }
 
