@@ -1,9 +1,20 @@
 #include <algorithm>
 #include <iterator>
+#include <chrono>
 #include <spdlog/spdlog.h>
 
 #include "proxy_manager.h"
 #include "block_id_parser.h"
+
+template<typename Duration = std::chrono::microseconds,
+         typename F,
+         typename ... Args>
+typename Duration::rep profile(F&& fun,  Args&&... args) {
+  const auto beg = std::chrono::high_resolution_clock::now();
+  std::forward<F>(fun)(std::forward<Args>(args)...);
+  const auto end = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<Duration>(end - beg).count();
+}
 
 void proxy_manager::init(std::shared_ptr<host_info> hosts) {
     hosts_ = hosts;
@@ -119,10 +130,18 @@ void proxy_manager::fail_node(std::string instance_name) {
             }
 
             host *next_replica = (prev_idx == fixed_replicas.size() - 1) ? nullptr : &fixed_replicas[prev_idx + 1];
-            spdlog::info("setup chain on {}", prev.instance_name);
+            auto start_ts = std::chrono::high_resolution_clock::now();
             setup_chain(&prev, "/", role, next_replica);
-            spdlog::info("resend pending on {}", prev.instance_name);
+            auto end_ts = std::chrono::high_resolution_clock::now();
+            long long elapsed_tim = std::chrono::duration_cast<std::chrono::microseconds>(end_ts - start_ts).count();
+            spdlog::info("setup chain on {}, dur: {}", prev.instance_name, elapsed_tim);
+
+            start_ts = std::chrono::high_resolution_clock::now();
             resend_pending(&prev);
+            end_ts = std::chrono::high_resolution_clock::now();
+            elapsed_tim = std::chrono::duration_cast<std::chrono::microseconds>(end_ts - start_ts).count();
+            spdlog::info("resend pending on {}, dur: {}", prev.instance_name, elapsed_tim);
+
         } else {
             // Head failure
             assert(fixed_replicas.size() >= 1);
@@ -188,33 +207,47 @@ int proxy_manager::get_idx(const host &h, const std::vector<host> &replicas) {
 }
 
 void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host *next) {
+    std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
-        auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
-        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-        auto client = std::make_shared<block_request_serviceClient>(protocol);
-        transport->open();
+        threads.push_back(std::thread([&]() {
+            auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+            auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+            auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+            auto client = std::make_shared<block_request_serviceClient>(protocol);
+            transport->open();
 
-        std::vector<std::string> dummy_chain;
-        std::string next_block_id = (next == nullptr)?("nil"):(block_id_parser::make(next->hostname, next->port + i, next->port + i, i));
-        client->setup_chain(i, path, dummy_chain, role, next_block_id);
+            std::vector<std::string> dummy_chain;
+            std::string next_block_id = (next == nullptr)?("nil"):(block_id_parser::make(next->hostname, next->port + i, next->port + i, i));
+            client->setup_chain(i, path, dummy_chain, role, next_block_id);
 
-        transport->close();
+            transport->close();
+        }));
+    }
+
+    for(auto &t : threads) {
+        t.join();
     }
 }
 
 void proxy_manager::resend_pending(host *h) {
+    std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
-        auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
-        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-        auto client = std::make_shared<block_request_serviceClient>(protocol);
-        transport->open();
+        threads.push_back(std::thread([&]() {
+            auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+            auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+            auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+            auto client = std::make_shared<block_request_serviceClient>(protocol);
+            transport->open();
 
-        std::vector<std::string> dummy_chain;
-        client->resend_pending(i);
+            std::vector<std::string> dummy_chain;
+            client->resend_pending(i);
 
-        transport->close();
+            transport->close();
+        }));
+    }
+
+    for(auto &t : threads) {
+        t.join();
     }
 }
 
