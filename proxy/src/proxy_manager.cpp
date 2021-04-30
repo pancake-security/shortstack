@@ -240,6 +240,7 @@ int proxy_manager::get_idx(const host &h, const std::vector<host> &replicas) {
 }
 
 void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host *next) {
+    auto start_ts = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
         threads.push_back(std::thread([=]() {
@@ -262,9 +263,16 @@ void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host
     for(auto &t : threads) {
         t.join();
     }
+
+    auto end_ts = std::chrono::high_resolution_clock::now();
+
+    long long elapsed_tim = std::chrono::duration_cast<std::chrono::microseconds>(end_ts - start_ts).count();
+    spdlog::info("setup_chain, elapsed_time: {}", elapsed_tim);
 }
 
 void proxy_manager::resend_pending(host *h, host *next) {
+
+    auto start_ts = std::chrono::high_resolution_clock::now();
 
     std::vector<int64_t> cur_seqs;
     for(int i = 0; i < h->num_workers; i++) {
@@ -319,6 +327,11 @@ void proxy_manager::resend_pending(host *h, host *next) {
     for(auto &t : threads) {
         t.join();
     }
+
+    auto end_ts = std::chrono::high_resolution_clock::now();
+
+    long long elapsed_tim = std::chrono::duration_cast<std::chrono::microseconds>(end_ts - start_ts).count();
+    spdlog::info("setup_chain, elapsed_time: {}", elapsed_tim);
 }
 
 void proxy_manager::update_connections(host *h, int type, int column, host *target) {
