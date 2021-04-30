@@ -19,6 +19,17 @@ typename Duration::rep profile(F&& fun,  Args&&... args) {
 
 void proxy_manager::init(std::shared_ptr<host_info> hosts) {
     hosts_ = hosts;
+
+    // Pre-create connections to all cores
+    std::vector<host> all_hosts;
+    hosts_->get_hosts_by_type(-1, all_hosts);
+    for(auto &h : all_hosts) {
+        for(int i = 0; i < h.num_workers; i++) {
+            get_block_client(h.hostname, h.port + i);
+        }
+    }
+
+    spdlog::info("Pre-created connections");
 }
 
 void proxy_manager::setup_reverse_connections() {
@@ -213,17 +224,19 @@ void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
         threads.push_back(std::thread([=]() {
-            auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
-            auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-            auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-            auto client = std::make_shared<block_request_serviceClient>(protocol);
-            transport->open();
+            auto client = this->get_block_client(h->hostname, h->port + i);
+        
+            // auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+            // auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+            // auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+            // auto client = std::make_shared<block_request_serviceClient>(protocol);
+            // transport->open();
 
             std::vector<std::string> dummy_chain;
             std::string next_block_id = (next == nullptr)?("nil"):(block_id_parser::make(next->hostname, next->port + i, next->port + i, i));
             client->setup_chain(i, path, dummy_chain, role, next_block_id);
 
-            transport->close();
+            // transport->close();
         }));
     }
 
@@ -243,16 +256,17 @@ void proxy_manager::resend_pending(host *h, host *next) {
         // Fetch current sequence number of successor
         std::vector<std::future<int64_t>> seqs;
         for(int i = 0; i < h->num_workers; i++) {
-            seqs.push_back(std::async([=](){
-                 auto socket = std::make_shared<TSocket>(next->hostname, next->port + i);
-                auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-                auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-                auto client = std::make_shared<block_request_serviceClient>(protocol);
-                transport->open();
+            seqs.push_back(std::async(std::launch::async, [=](){
+                auto client = this->get_block_client(next->hostname, next->port + i);
+                //  auto socket = std::make_shared<TSocket>(next->hostname, next->port + i);
+                // auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+                // auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+                // auto client = std::make_shared<block_request_serviceClient>(protocol);
+                // transport->open();
 
                 int64_t res = client->fetch_seq(i);
                 
-                transport->close();
+                // transport->close();
 
                 return res; 
             }));
@@ -269,16 +283,17 @@ void proxy_manager::resend_pending(host *h, host *next) {
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
         threads.push_back(std::thread([=]() {
-            auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
-            auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
-            auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
-            auto client = std::make_shared<block_request_serviceClient>(protocol);
-            transport->open();
+            auto client = this->get_block_client(h->hostname, h->port + i);
+            // auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
+            // auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+            // auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+            // auto client = std::make_shared<block_request_serviceClient>(protocol);
+            // transport->open();
 
-            std::vector<std::string> dummy_chain;
+            // std::vector<std::string> dummy_chain;
             client->resend_pending(i, cur_seqs[i]);
 
-            transport->close();
+            // transport->close();
         }));
     }
 
@@ -317,6 +332,27 @@ void proxy_manager::selective_resend_pending(host *h, int column, int num_column
 
         transport->close();
     }
+}
+
+std::shared_ptr<block_request_serviceClient> proxy_manager::get_block_client(std::string hostname, int port) {
+    if(block_client_cache_.find(std::make_pair(hostname, port)) == block_client_cache_.end()) {
+        auto socket = std::make_shared<TSocket>(hostname, port);
+        auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
+        auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
+        auto client = std::make_shared<block_request_serviceClient>(protocol);
+        transport->open();
+
+        block_srv_client c;
+        c.socket = socket;
+        c.transport = transport;
+        c.protocol = protocol;
+        c.client = client;
+        block_client_cache_[std::make_pair(hostname, port)] = c;
+
+        spdlog::info("Created connection to {}:{}", hostname, port);
+    }
+
+    return block_client_cache_[std::make_pair(hostname, port)].client;
 }
  
 

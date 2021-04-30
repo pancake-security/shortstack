@@ -32,6 +32,14 @@ using namespace apache::thrift::transport;
 
 class proxy_manager {
 
+    struct block_srv_client {
+        std::shared_ptr<block_request_serviceClient> client;
+        std::shared_ptr<TSocket> socket;
+        std::shared_ptr<TTransport> transport;
+        std::shared_ptr<TProtocol> protocol;
+
+    }; 
+
 public:
 
     void init(std::shared_ptr<host_info> hosts);
@@ -52,7 +60,11 @@ private:
     void update_connections(host *h, int type, int column, host *target);
     void selective_resend_pending(host *h, int column, int num_columns);
 
+    std::shared_ptr<block_request_serviceClient> get_block_client(std::string hostname, int port);
+
     std::shared_ptr<host_info> hosts_{nullptr};
+
+    std::map<std::pair<std::string, int>, block_srv_client> block_client_cache_;
     
 };
 
