@@ -125,17 +125,28 @@ void l3_proxy::init_proxy(
   hosts->get_hosts_by_type(HOST_TYPE_KV, kv_hosts);
   if(kv_interaction_) {  
     
-      storage_iface_ =
-          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb_dummy);
-      for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-      }
+      // storage_iface_ =
+      //     std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, storage_batch_size_, get_cb, put_cb_dummy);
+      // for (int j = 1; j < kv_hosts.size(); j++) {
+      //   storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      // }
   
+      // storage_iface2_ =
+      //     std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, 10000000, get_cb_dummy, put_cb);
+      // for (int j = 1; j < kv_hosts.size(); j++) {
+      //   storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      // }
+
+      int redis_idx = hosts->get_host_idx(HOST_TYPE_L3, this_host.hostname);  
+    
+      storage_iface_ =
+          std::make_shared<redis_interface>(kv_hosts[redis_idx].hostname, kv_hosts[redis_idx].port, storage_batch_size_, get_cb, put_cb);
+      // for (int j = 1; j < kv_hosts.size(); j++) {
+      //   storage_iface_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
+      // }
+
       storage_iface2_ =
-          std::make_shared<redis_interface>(kv_hosts[0].hostname, kv_hosts[0].port, 10000000, get_cb_dummy, put_cb);
-      for (int j = 1; j < kv_hosts.size(); j++) {
-        storage_iface2_->add_server(kv_hosts[j].hostname, kv_hosts[j].port);
-      }
+          std::make_shared<redis_interface>(kv_hosts[redis_idx].hostname, kv_hosts[redis_idx].port, storage_batch_size_, get_cb, put_cb);
 
       spdlog::info("Worker {}: Storage interfaces connected", idx_);
    
