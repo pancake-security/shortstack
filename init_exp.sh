@@ -31,16 +31,21 @@ then
 
     echo "Init KV store + push distinfo"
     /local/deploy/proxy_server init -h /local/deploy/hosts.csv -o $objsz -t /local/deploy/$trace -d /local/deploy/distinfo.bin && sbin/sync.sh /local/deploy/distinfo.bin
+
+    # Hack: populate all keys on all redis
+    echo "Populate all keys store"
+    awk 'BEGIN {for(i=0;i<2000000;i++) {print "GET "i;}}' > traces/all_labels
+    /local/deploy/redis_benchmark -i -h /local/deploy/hosts.csv -t traces/all_labels -z $objsz
 fi
 
 echo "Starting proxies"
 sbin/hosts.sh /local/deploy/stop_proxys.sh; 
 sleep 2; 
 sbin/run_l3.sh /local/deploy/hosts.csv -s 24 -c 1 -y 30; 
-sleep 10; 
+sleep 4; 
 sbin/run_l2.sh /local/deploy/hosts.csv $rep -c 1 -y 30; 
-sleep 10; 
+sleep 4; 
 sbin/run_l1.sh /local/deploy/hosts.csv $rep -c 1; 
-sleep 10; 
+sleep 4; 
 /local/deploy/proxy_server manager -h /local/deploy/hosts.csv -s
 
