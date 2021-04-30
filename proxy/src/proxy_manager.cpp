@@ -209,7 +209,7 @@ int proxy_manager::get_idx(const host &h, const std::vector<host> &replicas) {
 void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host *next) {
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
-        threads.push_back(std::thread([&]() {
+        threads.push_back(std::thread([=]() {
             auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
             auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
             auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
@@ -232,7 +232,7 @@ void proxy_manager::setup_chain(host *h, std::string path, chain_role role, host
 void proxy_manager::resend_pending(host *h) {
     std::vector<std::thread> threads;
     for(int i = 0; i < h->num_workers; i++) {
-        threads.push_back(std::thread([&]() {
+        threads.push_back(std::thread([=]() {
             auto socket = std::make_shared<TSocket>(h->hostname, h->port + i);
             auto transport = std::shared_ptr<TTransport>(new TFramedTransport(socket));
             auto protocol = std::shared_ptr<TProtocol>(new TBinaryProtocol(transport));
