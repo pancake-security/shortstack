@@ -58,16 +58,17 @@ void l3proxy_interface::send_op(const l3_operation &op) {
 }
 
 // Remove connection at given column
+// TODO: Hack --- also update connections for all sibling processes running on same host 
 void l3proxy_interface::remove_connection(int column) {
   if(!(column >= 0 && column < clients_.size())) {
     throw std::runtime_error("remove_connection column out of range");
   }
 
-  clients_.erase(clients_.begin() + column);
-  protocols_.erase(protocols_.begin() + column);
-  transports_.erase(transports_.begin() + column);
-  sockets_.erase(sockets_.begin() + column);
+  clients_.erase(clients_.begin() + column, clients_.begin() + column + L3_NUM_CORES);
+  protocols_.erase(protocols_.begin() + column, protocols_.begin() + column + L3_NUM_CORES);
+  transports_.erase(transports_.begin() + column, transports_.begin() + column + L3_NUM_CORES);
+  sockets_.erase(sockets_.begin() + column, sockets_.begin() + column + L3_NUM_CORES);
 
-  spdlog::info("Removed L3 connection, column: {}, clients_.size = {}", column, clients_.size());
+  spdlog::info("Removed L3 connections, column: {}, clients_.size = {}", column, clients_.size());
 
 }

@@ -305,7 +305,8 @@ bool l2_proxy::filter_request(const sequence_id &seq, const arg_list &args, int 
 
     auto id = consistent_hash(label, num_columns);
 
-    return (id == column);
+    // TODO: Hack
+    return (id >= column && id < column + L3_NUM_CORES);
 }
 
 void l2_proxy::external_ack(const sequence_id& seq) {
