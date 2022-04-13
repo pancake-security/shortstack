@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
       
       std::string res, diag;
       
-      assert(client->poll_responses(res, diag) == req_id);
+      assert(client->poll_responses(res, diag) == seq);
       
       if(val.empty()) {
           std::cout << "GET Response: " << res << "\n";
