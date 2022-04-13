@@ -254,8 +254,8 @@ target_link_libraries(shortstack_test
         
         
 
-add_executable(shortstack_client
-        src/shortstack_client.cpp
+add_executable(shortstack_driver
+        src/shortstack_driver.cpp
 
         ../libclient/src/client.h
         ../libclient/src/proxy_client.cpp
@@ -322,9 +322,9 @@ add_executable(shortstack_client
         #../libstorage/src/memcached.cpp
         #../libstorage/src/memcached.h
         ../service/src/thrift_utils.h)
-# add_dependencies(shortstack_client cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
-add_dependencies(shortstack_client cpp_redis libcuckoo openssl_ep thrift_ep)
-target_link_libraries(shortstack_client
+# add_dependencies(shortstack_driver cpp_redis ssdb_rocks libcuckoo openssl_ep thrift_ep)
+add_dependencies(shortstack_driver cpp_redis libcuckoo openssl_ep thrift_ep)
+target_link_libraries(shortstack_driver
         Threads::Threads
         ${THRIFTNB_LIBRARY}
         ${THRIFT_LIBRARY}
