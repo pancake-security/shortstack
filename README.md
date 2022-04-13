@@ -67,6 +67,12 @@ Initialize proxys
 ./bin/proxy_server manager -h ./singlebox.csv -s
 ```
 
+Run client
+
+```
+./bin/shortstack_driver -h ./singlebox.csv -t traces/helloworld
+```
+
 
 
 
