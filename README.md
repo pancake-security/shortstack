@@ -40,8 +40,34 @@ echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
 Initialize KV and produce distribution information
 
 ```
-./bin/proxy_server init -h ./singlebox.csv -o 1000 -t traces/helloworld -d ./distinfo.bi
+./bin/proxy_server init -h ./singlebox.csv -o 1000 -t traces/helloworld -d ./distinfo.bin
 ```
+
+Start L3 proxy
+
+```
+./bin/proxy_server l3 -h ./singlebox.csv -i l3 -s 1 -c 1 -y 1
+```
+
+Start L2 proxy
+
+```
+./bin/proxy_server l2 -h ./singlebox.csv -d distinfo.bin -i l2 -c 1 -y 1
+```
+
+Start L1 proxy
+
+```
+./bin/proxy_server l1 -h ./singlebox.csv -d distinfo.bin -i l1 -c 1 -y 1 -f
+```
+
+Initialize proxys
+
+```
+./bin/proxy_server manager -h ./singlebox.csv -s
+```
+
+
 
 
 
