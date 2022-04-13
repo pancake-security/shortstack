@@ -94,11 +94,11 @@ int main(int argc, char *argv[]) {
       int64_t seq;
       
       if(val.empty()) {
-            seq = client.get(key);
+            seq = client->get(key);
             std::cout << "GET " << key << " request sent\n";
             
       } else {
-            seq = client.put(key, val);
+            seq = client->put(key, val);
             std::cout << "PUT " << key << " " << val << " request sent\n";
       }
       
