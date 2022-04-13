@@ -1,0 +1,10 @@
+PUT 1 hello
+PUT 2 world
+PUT 3 shortstack
+PUT 4 is
+PUT 5 working
+GET 1
+GET 2
+GET 3
+GET 4
+GET 5
