@@ -3,6 +3,7 @@
 #include <memory>
 #include <cstdint>
 #include <sstream>
+#include <fstream>
 #include <thread>
 #include "assert.h"
 
