@@ -358,8 +358,12 @@ int main(int argc, char *argv[]) {
     done.store(true);
 
     monitor.join();
+	
+    std::string stats_location = output_path + ".stats";
+    std::ofstream stats_out(stats_location);
     
     std::cout << "Xput was: " << xput << std::endl;
+    stats_out << "Xput: " << xput << "\n";
 
     std::string location = output_path + ".xput";
     std::ofstream out(location);
@@ -385,4 +389,8 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "Average latency: " << (lat_sum/lat_count) << std::endl;
+    stats_out << "Average latency: " << (lat_sum/lat_count) << "\n";
+
+    stats_out.flush();
+    stats_out.close();
 }
