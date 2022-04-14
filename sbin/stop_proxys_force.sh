@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-killall -9 proxy_server
+killall -q -9 proxy_server
