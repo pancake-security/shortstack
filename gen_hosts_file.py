@@ -42,6 +42,7 @@ print('%d servers' % (len(servers)))
 required_servers = num_l1_servers*num_l1_replicas + num_l2_servers*num_l2_replicas + num_l3_servers + num_kv_servers + num_clients
 if required_servers > len(servers):
     print('Not enough servers')
+    exit(-1)
 
 f = open(out_hosts, 'w')
 idx = 0
