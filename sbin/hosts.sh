@@ -33,10 +33,10 @@ fi
 
 if [ "$SERVERLIST" = "" ]; then
   if [ "$JIFFY_SERVERS" = "" ]; then
-    if [ -f "zedro.hosts" ]; then
-      SERVERLIST=`cat "zedro.hosts"`
+    if [ -f "$SHORTSTACK_SERVERS" ]; then
+      SERVERLIST=`cat "$SHORTSTACK_SERVERS"`
     else
-      echo "zedro.hosts not found"
+      echo "$SHORTSTACK_SERVERS not found"
       exit 1
     fi
   else
