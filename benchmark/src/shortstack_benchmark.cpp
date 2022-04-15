@@ -159,7 +159,7 @@ void cooldown(std::vector<int> &latencies, int client_batch_size,
     run_benchmark(5, false, latencies, client_batch_size, trace, xput, client, qd, dummy, total_op_count);
 }
 
-void client(int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies, std::vector<std::string> &diags, std::atomic<uint64_t> &total_op_count) {
+void client(bool warmcool, int idx, int client_batch_size, trace_vector &trace, std::string output_path, std::shared_ptr<host_info> hinfo, std::atomic<int> &xput, int queue_depth, std::vector<int> &latencies, std::vector<std::string> &diags, std::atomic<uint64_t> &total_op_count) {
     shortstack_client client;
     client.init(idx, hinfo);
 
@@ -167,8 +167,10 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     std::atomic<int> indiv_xput;
     std::atomic_init(&indiv_xput, 0);
     // std::vector<int> latencies;
-    std::cout << "Beginning warmup" << std::endl;
-    warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
+    if(warmcool) {
+    	std::cout << "Beginning warmup" << std::endl;
+    	warmup(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
+    }
     std::cout << "Beginning benchmark" << std::endl;
     run_benchmark(10, true, latencies, client_batch_size, trace, indiv_xput, client, queue_depth, diags, total_op_count);
     std::string location = output_path + "-client" + std::to_string(idx)+ ".lat";
@@ -182,8 +184,12 @@ void client(int idx, int client_batch_size, trace_vector &trace, std::string out
     line.append("Xput: " + std::to_string(indiv_xput) + "\n");
     out << line;
     xput += indiv_xput;
-    std::cout << "Beginning cooldown" << std::endl;
-    cooldown(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
+    
+    if(warmcool) {
+    	std::cout << "Beginning cooldown" << std::endl;
+    	cooldown(latencies, client_batch_size, trace, indiv_xput, client, queue_depth, total_op_count);
+    }
+    
 
     client.finish();
 }
@@ -269,7 +275,8 @@ int main(int argc, char *argv[]) {
     std::string hosts_file;
     bool debug_mode = false;
     int monitor_us = 1000;
-    while ((o = getopt(argc, argv, "h:t:n:o:q:gm:")) != -1) {
+    bool warmcool = true;
+    while ((o = getopt(argc, argv, "h:t:n:o:q:gm:w")) != -1) {
         switch (o) {
             case 'h':
                 hosts_file = std::string(optarg);
@@ -291,6 +298,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'm':
                 monitor_us = std::atoi(optarg);
+                break;
+	    case 'w':
+                warmcool = false;
                 break;
             default:
                 usage();
@@ -344,7 +354,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::thread> threads;
     for (int i = 0; i < num_clients; i++) {
-        threads.push_back(std::thread(client, base_client_id + i, client_batch_size, std::ref(trace),
+        threads.push_back(std::thread(client, warmcool, base_client_id + i, client_batch_size, std::ref(trace),
                           output_path, hinfo, std::ref(xput), queue_depth, std::ref(client_lats[i]),
                           std::ref(client_diags[i]), std::ref(total_op_count_)));
     }
