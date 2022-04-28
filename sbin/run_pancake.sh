@@ -8,7 +8,6 @@ sbin="`cd "$sbin"; pwd`"
 hosts_csv=$1
 shift;
 rep_factor=1;
-shift;
 
 for ((replica=$rep_factor-1; replica>=0; replica--)); do
   l1_hosts=($(cat $hosts_csv | awk -v r=$replica '($2 == "L1" && $5 == r) { print $3 }'))
