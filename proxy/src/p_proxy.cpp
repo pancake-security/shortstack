@@ -351,7 +351,7 @@ void p_proxy::process_l2(const l2_operation &l2op) {
   // TODO: Currently check_for_update also clears the status bit. This can lead to inconsistency. The bit should be cleared only after PUT to KV is complete.
   std::string plaintext_update;
   if(update_cache_enabled_) {
-    plaintext_update = update_cache_->check_for_update(op.key, op.replica);
+    plaintext_update = update_cache_->check_for_update_immutable(op.key, op.replica);
   } else {
     plaintext_update = op.value;
   }
