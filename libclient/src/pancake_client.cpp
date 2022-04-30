@@ -214,11 +214,13 @@ void pancake_client::flush_thread() {
     while(!done_.load()) {
         sleep(5);
 
+        /*
         for(int i = 0; i < flush_clients_.size(); i++) 
         {
             spdlog::info("Flushing proxys");
             flush_clients_[i]->put("$flush$", "$flush$");
         }
+        */
     }
 }
 
