@@ -35,7 +35,7 @@ void p_proxy::init_proxy(std::shared_ptr<host_info> hosts,
 
   storage_batch_size_ = storage_batch_size;
 
-  crypto_queue_ = std::make_shared<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>>();;
+  crypto_queue_ = std::make_shared<moodycamel::BlockingConcurrentQueue<crypto_op_batch>>();;
 
   respond_queue_ = std::make_shared<queue<client_response>>();
 

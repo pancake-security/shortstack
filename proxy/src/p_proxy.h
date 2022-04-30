@@ -26,8 +26,8 @@
 #include "l3_proxy.h"
 #include "l1_proxy.h"
 #include "redis_interface.h"
-#include "atomicops.h"
-#include "readerwriterqueue.h"
+//#include "atomicops.h"
+#include "blockingconcurrentqueue.h"
 
 class p_proxy : public proxy {
 public:
@@ -144,7 +144,7 @@ private:
   std::shared_ptr<redis_interface> storage_iface_;
 
   // Per-crypto thread state
-  std::shared_ptr<moodycamel::BlockingReaderWriterQueue<crypto_op_batch>> crypto_queue_;
+  std::shared_ptr<moodycamel::BlockingConcurrentQueue<crypto_op_batch>> crypto_queue_;
   std::shared_ptr<redis_interface> storage_iface2_;
 
   std::shared_ptr<thrift_response_client_map> id_to_client_;

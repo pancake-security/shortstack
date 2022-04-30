@@ -122,6 +122,9 @@ add_executable(proxy_server
 
         ../proxy/src/atomicops.h
         ../proxy/src/readerwriterqueue.h
+        ../proxy/src/concurrentqueue.h
+        ../proxy/src/lightweightsemaphore.h
+        ../proxy/src/blockingconcurrentqueue.h
 
         ../proxy/src/p_proxy.cpp
         ../proxy/src/p_proxy.h
